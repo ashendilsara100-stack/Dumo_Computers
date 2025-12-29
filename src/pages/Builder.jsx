@@ -9,7 +9,42 @@ const PCBuilder = () => {
   const [showSummary, setShowSummary] = useState(false);
 
   // Sample data integration (Same as yours but with added brand context if needed)
-  const components = { /* ... keep your existing components object ... */ };
+  // Sample component data - Meka missing nisa thama badu penna naththe
+  const components = {
+    cpu: [
+      { id: 1, name: 'Intel Core i9-14900K', price: 125000, socket: 'LGA1700', tdp: 125 },
+      { id: 2, name: 'AMD Ryzen 7 7800X3D', price: 105000, socket: 'AM5', tdp: 120 },
+      { id: 3, name: 'Intel Core i5-14600K', price: 72000, socket: 'LGA1700', tdp: 125 }
+    ],
+    motherboard: [
+      { id: 1, name: 'ASUS ROG Strix Z790-E', price: 85000, socket: 'LGA1700' },
+      { id: 2, name: 'MSI MAG B650 Tomahawk', price: 65000, socket: 'AM5' }
+    ],
+    ram: [
+      { id: 1, name: 'G.Skill Trident Z5 32GB DDR5', price: 45000 },
+      { id: 2, name: 'Corsair Vengeance 16GB DDR4', price: 28000 }
+    ],
+    gpu: [
+      { id: 1, name: 'NVIDIA RTX 4090', price: 450000, power: 450 },
+      { id: 2, name: 'NVIDIA RTX 4060 Ti', price: 185000, power: 160 }
+    ],
+    storage: [
+      { id: 1, name: 'Samsung 990 Pro 2TB', price: 48000 },
+      { id: 2, name: 'WD Black 1TB NVMe', price: 28000 }
+    ],
+    psu: [
+      { id: 1, name: 'Corsair RM1000x', price: 42000, wattage: 1000 },
+      { id: 2, name: 'Seasonic 750W Gold', price: 28000, wattage: 750 }
+    ],
+    case: [
+      { id: 1, name: 'Lian Li O11 Dynamic', price: 38000 },
+      { id: 2, name: 'NZXT H7 Flow', price: 32000 }
+    ],
+    cooling: [
+      { id: 1, name: 'NZXT Kraken 360mm AIO', price: 58000 },
+      { id: 2, name: 'Noctua Air Cooler', price: 28000 }
+    ]
+  };
 
   const componentIcons = {
     cpu: Cpu, motherboard: Monitor, ram: Zap, gpu: Monitor, storage: HardDrive, psu: Zap, case: Box, cooling: Fan
