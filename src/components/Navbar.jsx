@@ -7,8 +7,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
   const navItems = [
     { id: "home", label: "Home", icon: Home },
     { id: "shop", label: "Shop", icon: Package },
-    { id: "builder", label: "PC Builder", icon: Wrench },
-    { id: "admin", label: "Admin", icon: Shield }
+    { id: "builder", label: "PC Builder", icon: Wrench }
   ];
 
   const handleNavClick = (page) => {
