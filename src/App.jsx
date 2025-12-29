@@ -1,14 +1,16 @@
-import { useState } from "react";
-import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import Builder from "./pages/Builder";
-import Checkout from "./pages/Checkout";
-import Admin from "./pages/Admin";
+import { useState, useEffect } from "react"; // useEffect ඇඩ් කළා
+// ... අනෙක් imports එලෙසමයි
 
 export default function App() {
   const [page, setPage] = useState("home");
   const [cart, setCart] = useState([]);
+
+  // URL එක `/admin` ද කියලා පරීක්ෂා කරනවා
+  useEffect(() => {
+    if (window.location.pathname === "/admin") {
+      setPage("admin");
+    }
+  }, []);
 
   return (
     <>
@@ -21,4 +23,3 @@ export default function App() {
     </>
   );
 }
-
