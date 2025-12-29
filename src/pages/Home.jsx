@@ -2,6 +2,21 @@ import { useEffect, useState } from "react";
 import { getProducts } from "../firebase/products";
 import { ShoppingCart, Search, Filter, Zap, TrendingUp, Star, Package } from "lucide-react";
 
+const mockProducts = [
+  { id: 1, name: "AMD Ryzen 5 5600X", category: "CPU", price: 72000 },
+  { id: 2, name: "NVIDIA RTX 4060 Ti", category: "GPU", price: 185000 },
+  { id: 3, name: "Corsair Vengeance 16GB DDR4", category: "RAM", price: 28000 },
+  { id: 4, name: "Samsung 970 EVO 1TB NVMe", category: "Storage", price: 35000 },
+  { id: 5, name: "ASUS ROG Strix B550-F", category: "Motherboard", price: 65000 },
+  { id: 6, name: "Corsair RM850x 850W", category: "PSU", price: 42000 },
+  { id: 7, name: "NZXT H510 Elite", category: "Case", price: 38000 },
+  { id: 8, name: "Cooler Master Hyper 212", category: "Cooling", price: 15000 },
+  { id: 9, name: "Intel Core i7-13700K", category: "CPU", price: 145000 },
+  { id: 10, name: "NVIDIA RTX 4070 Ti", category: "GPU", price: 295000 },
+  { id: 11, name: "G.Skill Trident Z 32GB DDR5", category: "RAM", price: 58000 },
+  { id: 12, name: "WD Black SN850X 2TB NVMe", category: "Storage", price: 68000 },
+];
+
 export default function Shop({ cart, setCart }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,11 +27,13 @@ export default function Shop({ cart, setCart }) {
   const categories = ["All", "CPU", "GPU", "RAM", "Storage", "Motherboard", "PSU", "Case", "Cooling"];
 
   useEffect(() => {
-    getProducts().then((data) => {
-      setProducts(data);
-      setLoading(false);
-    });
-  }, []);
+  setTimeout(() => {
+    setProducts(mockProducts);  // Uses mock data
+    setLoading(false);
+  }, 1000);
+}, []);
+
+  
 
   const addToCart = (p) => {
     setCart([...cart, p]);
