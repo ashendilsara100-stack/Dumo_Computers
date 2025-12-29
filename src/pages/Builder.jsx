@@ -84,6 +84,34 @@ const PCBuilder = () => {
     return issues;
   };
 
+  const handleShareBuild = () => {
+    // 1. Select karapu components tika filter karala text ekakata harawanawa
+    const buildText = Object.entries(selectedComponents)
+      .filter(([_, comp]) => comp !== null) // Badu thora thiyena ewa witarak gannawa
+      .map(([cat, comp]) => `${componentLabels[cat]}: ${comp.name} - LKR ${comp.price.toLocaleString()}`)
+      .join('\n');
+
+    if (!buildText) {
+      alert("Please select at least one component to share!");
+      return;
+    }
+
+    // 2. Final Message eka set karanawa
+    const finalMessage = `🚀 MY CUSTOM PC BUILD (DUMO COMPUTERS)\n\n${buildText}\n\n━━━━━━━━━━━━━━━━━━━━\n💰 TOTAL: LKR ${totalPrice.toLocaleString()}\n━━━━━━━━━━━━━━━━━━━━`;
+
+    // 3. Clipboard ekata copy karanawa
+    navigator.clipboard.writeText(finalMessage).then(() => {
+      // 4. Success Notification (Toast)
+      const toast = document.createElement('div');
+      toast.className = 'fixed top-24 right-6 bg-white text-black px-8 py-4 rounded-2xl shadow-2xl z-50 animate-bounce font-black border-2 border-amber-500';
+      toast.innerHTML = '📋 BUILD COPIED TO CLIPBOARD!';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+    });
+  };
+
   const compatibilityIssues = checkCompatibility();
   const completedSteps = Object.values(selectedComponents).filter(c => c !== null).length;
   const progressPercentage = (completedSteps / 8) * 100;
