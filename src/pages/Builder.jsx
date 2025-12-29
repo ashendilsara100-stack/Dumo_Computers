@@ -58,66 +58,7 @@ const PCBuilder = ({ cart, setCart }) => {
     setTotalPrice(total);
   }, [selectedComponents]);
 
-  // --- PDF GENERATION LOGIC ---
-  const handleDownloadQuotation = () => {
-    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
-    if (selectedItems.length === 0) {
-      showToast("PLEASE SELECT COMPONENTS FIRST!", "border-red-500");
-      return;
-    }
-
-    const doc = new jsPDF();
-    const date = new Date().toLocaleDateString();
-    const buildId = Math.floor(Math.random() * 100000);
-
-    // Branding & Header
-    doc.setFillColor(0, 0, 0);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 191, 0); // Amber
-    doc.setFontSize(24);
-    doc.setFont(undefined, 'bold');
-    doc.text("DUMO COMPUTERS", 14, 25);
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text("PREMIUM GAMING PC SOLUTIONS", 14, 32);
-    doc.text(`DATE: ${date} | QUOTE: #DC${buildId}`, 130, 25);
-
-    // Table
-    const tableRows = selectedItems.map(([category, comp]) => [
-      componentLabels[category].toUpperCase(),
-      comp.name,
-      `LKR ${comp.price.toLocaleString()}`
-    ]);
-
-    doc.autoTable({
-      startY: 50,
-      head: [['CATEGORY', 'PRODUCT DESCRIPTION', 'PRICE']],
-      body: tableRows,
-      theme: 'grid',
-      headStyles: { fillColor: [20, 20, 20], textColor: [255, 191, 0], fontStyle: 'bold' },
-      styles: { fontSize: 10, cellPadding: 5 },
-    });
-
-    // Summary
-    const finalY = doc.lastAutoTable.finalY + 15;
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(16);
-    doc.text(`GRAND TOTAL: LKR ${totalPrice.toLocaleString()}`, 14, finalY);
-
-    // Footer
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Notes: Prices are subject to availability. Quote valid for 7 days.", 14, finalY + 15);
-    doc.text("Visit us: www.dumocomputers.lk | Contact: +94 XX XXX XXXX", 14, finalY + 22);
-
-    doc.save(`Dumo_Quote_DC${buildId}.pdf`);
-    showToast("📥 QUOTATION DOWNLOADED!", "border-blue-500");
-  };
-
-  // Helper Functions
-  const handleComponentSelect = (category, component) => setSelectedComponents(prev => ({ ...prev, [category]: component }));
-  const handleComponentRemove = (category) => setSelectedComponents(prev => ({ ...prev, [category]: null }));
+  // Toast Function
   const showToast = (msg, borderColor) => {
     const t = document.createElement('div');
     t.className = `fixed top-24 right-6 bg-white text-black px-8 py-4 rounded-2xl shadow-2xl z-50 animate-bounce font-black border-2 ${borderColor}`;
@@ -126,20 +67,65 @@ const PCBuilder = ({ cart, setCart }) => {
     setTimeout(() => t.remove(), 3000);
   };
 
-  const handleAddAllToCart = () => {
-    const items = Object.values(selectedComponents).filter(c => c !== null);
-    if (items.length === 0) return showToast("SELECT PARTS!", "border-red-500");
-    setCart([...cart, ...items]);
-    showToast("✓ ADDED TO CART!", "border-amber-500");
+  // 1. PDF LOGIC
+  const handleDownloadQuotation = () => {
+    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+
+    const doc = new jsPDF();
+    const date = new Date().toLocaleDateString();
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 191, 0);
+    doc.setFontSize(24);
+    doc.text("DUMO COMPUTERS", 14, 25);
+    doc.autoTable({
+      startY: 50,
+      head: [['CATEGORY', 'PRODUCT', 'PRICE']],
+      body: selectedItems.map(([cat, comp]) => [componentLabels[cat], comp.name, `LKR ${comp.price.toLocaleString()}`]),
+      headStyles: { fillColor: [20, 20, 20], textColor: [255, 191, 0] }
+    });
+    doc.save(`Dumo_Quote.pdf`);
+    showToast("📥 QUOTATION DOWNLOADED!", "border-blue-500");
   };
+
+  // 2. SHARE LOGIC (Clipboard)
+  const handleShareBuild = () => {
+    const buildText = Object.entries(selectedComponents)
+      .filter(([_, comp]) => comp !== null)
+      .map(([cat, comp]) => `• ${componentLabels[cat]}: ${comp.name}`)
+      .join('\n');
+
+    if (!buildText) return showToast("NOTHING TO SHARE!", "border-red-500");
+
+    const finalMessage = `🚀 DUMO COMPUTERS - MY CUSTOM BUILD\n\n${buildText}\n\n💰 TOTAL: LKR ${totalPrice.toLocaleString()}`;
+    navigator.clipboard.writeText(finalMessage).then(() => showToast("📋 COPIED TO CLIPBOARD!", "border-amber-500"));
+  };
+
+  // 3. WHATSAPP LOGIC
+  const handleWhatsApp = () => {
+    const buildSummary = Object.entries(selectedComponents)
+      .filter(([_, comp]) => comp !== null)
+      .map(([cat, comp]) => `*${componentLabels[cat]}*: ${comp.name}`)
+      .join('%0A');
+
+    if (!buildSummary) return showToast("SELECT PARTS FIRST!", "border-red-500");
+
+    const message = `Hello Dumo Computers!%0AI want to get a quote for this PC build:%0A%0A${buildSummary}%0A%0A*Total: LKR ${totalPrice.toLocaleString()}*`;
+    window.open(`https://wa.me/94771234567?text=${message}`, '_blank'); // Change your number here
+  };
+
+  const handleComponentSelect = (category, component) => setSelectedComponents(prev => ({ ...prev, [category]: component }));
+  const handleComponentRemove = (category) => setSelectedComponents(prev => ({ ...prev, [category]: null }));
 
   return (
     <div className="min-h-screen bg-black text-white font-sans">
+      {/* HEADER */}
       <div className="relative pt-32 pb-16 px-6 border-b border-white/10">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-8">
           <div>
             <div className="flex items-center gap-2 text-amber-500 font-black text-xs tracking-[0.3em] mb-4 uppercase">
-              <Activity size={16} /> Advanced PC Builder
+              <Activity size={16} /> PC Configurator
             </div>
             <h1 className="text-7xl md:text-9xl font-black italic tracking-tighter leading-none">BUILD <span className="text-white/10">YOUR</span> BEAST</h1>
           </div>
@@ -152,7 +138,7 @@ const PCBuilder = ({ cart, setCart }) => {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Component Selection */}
+          {/* LEFT: COMPONENT LIST */}
           <div className="lg:col-span-8 space-y-8">
             {Object.entries(components).map(([cat, items]) => {
               const Icon = componentIcons[cat];
@@ -163,7 +149,7 @@ const PCBuilder = ({ cart, setCart }) => {
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-4">
                         <div className={`p-4 rounded-2xl ${sel ? 'bg-amber-500 text-black' : 'bg-zinc-800'}`}><Icon size={28} /></div>
-                        <h2 className="text-2xl font-black uppercase italic tracking-tight">{componentLabels[cat]}</h2>
+                        <h2 className="text-2xl font-black uppercase italic">{componentLabels[cat]}</h2>
                       </div>
                       {sel && <button onClick={() => handleComponentRemove(cat)} className="text-red-500 p-2 hover:bg-red-500/10 rounded-full"><Trash2 size={20} /></button>}
                     </div>
@@ -181,25 +167,35 @@ const PCBuilder = ({ cart, setCart }) => {
             })}
           </div>
 
-          {/* Sidebar */}
+          {/* RIGHT: SUMMARY SIDEBAR */}
           <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit">
-            <div className="bg-zinc-950 border border-white/10 rounded-[40px] p-8 shadow-2xl">
+            <div className="bg-zinc-950 border border-white/10 rounded-[40px] p-8 shadow-2xl relative overflow-hidden">
               <h2 className="text-3xl font-black italic mb-8 flex items-center gap-3"><Box className="text-amber-500" /> BUILD LOG</h2>
-              <div className="space-y-4 mb-10 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+              
+              <div className="space-y-4 mb-10">
                 {Object.entries(selectedComponents).map(([cat, comp]) => (
-                  <div key={cat} className="flex justify-between border-b border-white/5 pb-3">
-                    <div className="max-w-[180px]"><p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">{cat}</p><p className={`text-xs font-bold truncate ${comp ? 'text-white' : 'text-gray-800 italic'}`}>{comp ? comp.name : 'Empty'}</p></div>
+                  <div key={cat} className="flex justify-between border-b border-white/5 pb-2">
+                    <div className="max-w-[150px]"><p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">{cat}</p><p className={`text-xs font-bold truncate ${comp ? 'text-white' : 'text-gray-800 italic'}`}>{comp ? comp.name : 'Empty'}</p></div>
                     {comp && <p className="text-xs font-black text-amber-500">LKR {comp.price.toLocaleString()}</p>}
                   </div>
                 ))}
               </div>
               
-              <div className="space-y-4">
-                <button onClick={handleDownloadQuotation} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"><FileDown size={20} /> DOWNLOAD QUOTATION</button>
-                <div className="flex gap-3">
-                  <button onClick={handleAddAllToCart} className="flex-1 bg-amber-500 text-black py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-amber-400 transition-all"><ShoppingCart size={16} /> CART</button>
-                  <button onClick={() => window.open(`https://wa.me/94742299006`, '_blank')} className="flex-1 bg-zinc-900 text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 border border-white/10 hover:bg-zinc-800 transition-all"><MessageCircle size={16} /> WHATSAPP</button>
+              <div className="space-y-3">
+                <button onClick={handleDownloadQuotation} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all">
+                  <FileDown size={20} /> QUOTATION PDF
+                </button>
+                <div className="grid grid-cols-2 gap-3">
+                   <button onClick={handleShareBuild} className="bg-zinc-900 border border-white/10 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all">
+                     <Share2 size={16} /> SHARE
+                   </button>
+                   <button onClick={handleWhatsApp} className="bg-green-600 text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-green-700 transition-all">
+                     <MessageCircle size={16} /> WHATSAPP
+                   </button>
                 </div>
+                <button onClick={() => { setCart([...cart, ...Object.values(selectedComponents).filter(c => c)]); showToast("ADDED TO CART!", "border-amber-500")}} className="w-full bg-amber-500 text-black py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 mt-2">
+                   <ShoppingCart size={16} /> ADD ALL TO CART
+                </button>
               </div>
             </div>
           </div>
