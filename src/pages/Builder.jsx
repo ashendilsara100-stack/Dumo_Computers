@@ -5,7 +5,7 @@ import {
   Trash2, Activity, FileDown, MessageCircle 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Direct import for fix
+import autoTable from 'jspdf-autotable';
 
 const PCBuilder = ({ cart, setCart }) => {
   const [selectedComponents, setSelectedComponents] = useState({
