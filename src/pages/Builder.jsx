@@ -143,7 +143,7 @@ const PCBuilder = ({ cart, setCart }) => {
 
     if (!buildSummary) return showToast("SELECT PARTS FIRST!", "border-red-500");
     const message = `Hello Dumo Computers!%0AI want to get a quote for this build:%0A%0A${buildSummary}%0A%0A*Total: LKR ${totalPrice.toLocaleString()}*`;
-    window.open(`https://wa.me/94771234567?text=${message}`, '_blank');
+    window.open(`https://wa.me/94742299006?text=${message}`, '_blank');
   };
 
   return (
