@@ -1,5 +1,10 @@
-import { useState, useEffect } from "react"; // useEffect ඇඩ් කළා
-// ... අනෙක් imports එලෙසමයි
+import { useState, useEffect } from "react";
+import Navbar from "./components/Navbar";
+import Home from "./pages/Home";
+import Shop from "./pages/Shop";
+import Builder from "./pages/Builder";
+import Checkout from "./pages/Checkout";
+import Admin from "./pages/Admin";
 
 export default function App() {
   const [page, setPage] = useState("home");
