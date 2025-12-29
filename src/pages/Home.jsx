@@ -61,12 +61,12 @@ export default function Shop({ cart, setCart }) {
       {/* Header Section */}
       <div className="relative overflow-hidden bg-black py-20 px-6 border-b-2 border-white">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-6">
+          {/* <div className="flex items-center gap-4 mb-6">
             <Package className="w-12 h-12 text-white" />
             <h1 className="text-6xl md:text-8xl font-black text-white tracking-tight">
               Dumo Computers
             </h1>
-          </div>
+          </div> */}
           <p className="text-2xl md:text-3xl text-gray-300 mb-8 font-bold">
             Premium Gaming Components & PC Parts
           </p>
