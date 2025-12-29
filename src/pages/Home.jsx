@@ -59,7 +59,7 @@ export default function Shop({ cart, setCart }) {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header Section */}
-      <div className="relative overflow-hidden bg-black py-20 px-6 border-b-2 ">
+      <div className="relative overflow-hidden bg-black py-20 px-6 border-b-2 border-white">
         <div className="max-w-7xl mx-auto">
           {/* <div className="flex items-center gap-4 mb-6">
             <Package className="w-12 h-12 text-white" />
