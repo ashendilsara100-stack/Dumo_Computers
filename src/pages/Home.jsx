@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 // --- 3D TILT CARD COMPONENT ---
-const TiltCard = ({ children, className }) => {
+const TiltCard = ({ children, className, id }) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const mouseXSpring = useSpring(x);
@@ -24,10 +24,11 @@ const TiltCard = ({ children, className }) => {
 
   return (
     <motion.div
+      id={id} // Collision detect කිරීමට ID එකක් අවශ්‍යයි
       onMouseMove={handleMouseMove}
       onMouseLeave={() => { x.set(0); y.set(0); }}
       style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      className={className}
+      className={`${className} product-card`}
     >
       <div style={{ transform: "translateZ(50px)", transformStyle: "preserve-3d" }}>
         {children}
@@ -42,14 +43,12 @@ export default function Home({ setPage, cart, setCart }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    // 1. Context Menu Block
     const handleContextMenu = (e) => e.preventDefault();
     document.addEventListener("contextmenu", handleContextMenu);
 
-    // 2. LIQUID FLUID EFFECT LOGIC
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    let particles = [];
+    let drops = [];
     let mouse = { x: null, y: null };
 
     const resize = () => {
@@ -59,52 +58,88 @@ export default function Home({ setPage, cart, setCart }) {
     window.addEventListener("resize", resize);
     resize();
 
-    class Particle {
-      constructor(x, y) {
+    class Drop {
+      constructor(x, y, isMouseGenerated = false) {
         this.x = x;
         this.y = y;
-        this.size = Math.random() * 15 + 5;
-        this.speedX = Math.random() * 3 - 1.5;
-        this.speedY = Math.random() * 3 - 1.5;
-        this.color = Math.random() > 0.5 ? "rgba(245, 158, 11, 0.4)" : "rgba(255, 255, 255, 0.2)";
+        this.size = Math.random() * 4 + 2;
+        this.speedY = isMouseGenerated ? Math.random() * 2 + 1 : Math.random() * 3 + 2;
+        this.speedX = (Math.random() - 0.5) * 1;
+        this.gravity = 0.1;
+        this.opacity = 1;
+        this.color = Math.random() > 0.5 ? "#f59e0b" : "#ffffff"; // Amber or White
+        this.isStuck = false;
       }
+
       update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        if (this.size > 0.2) this.size -= 0.1;
+        if (!this.isStuck) {
+          this.speedY += this.gravity;
+          this.y += this.speedY;
+          this.x += this.speedX;
+        }
+
+        // Collision with Cards
+        const cards = document.querySelectorAll('.product-card');
+        cards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (
+            this.x > rect.left && this.x < rect.right &&
+            this.y > rect.top && this.y < rect.top + 10 // Card එකේ උඩ දාරයේ වැදීම
+          ) {
+            if (Math.random() > 0.7) { // හැම බින්දුවම ඇලෙන්නේ නැහැ, ස්වභාවික ගතියට
+               this.isStuck = true;
+               setTimeout(() => { this.isStuck = false; this.speedY = 1; }, 2000); // තත්පර 2කින් ආපහු වැටෙනවා
+            }
+          }
+        });
+
+        if (this.y > canvas.height) {
+          this.y = -10;
+          this.x = Math.random() * canvas.width;
+          this.speedY = Math.random() * 3 + 2;
+        }
       }
+
       draw() {
+        ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Liquid Glow effect
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
       }
+    }
+
+    // මුලින්ම පසුබිමේ වැක්කෙරෙන බින්දු ටිකක් හදමු
+    for(let i=0; i<50; i++) {
+      drops.push(new Drop(Math.random() * canvas.width, Math.random() * canvas.height));
     }
 
     const handleMouseMove = (e) => {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
-      for (let i = 0; i < 3; i++) {
-        particles.push(new Particle(mouse.x, mouse.y));
+      // Mouse එක යන තැනිනුත් බින්දු ඇති කරනවා
+      if (Math.random() > 0.5) {
+        drops.push(new Drop(mouse.x, mouse.y, true));
+        if (drops.length > 150) drops.shift(); // Performance තියාගන්න පරණ බින්දු අයින් කරනවා
       }
     };
     window.addEventListener("mousemove", handleMouseMove);
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < particles.length; i++) {
-        particles[i].update();
-        particles[i].draw();
-        if (particles[i].size <= 0.2) {
-          particles.splice(i, 1);
-          i--;
-        }
-      }
+      ctx.shadowBlur = 0; // Reset shadow for performance
+      drops.forEach(drop => {
+        drop.update();
+        drop.draw();
+      });
       requestAnimationFrame(animate);
     };
     animate();
 
-    // 3. Data Fetching
     const fetchFeatured = async () => {
       try {
         const q = query(collection(db, "products"), limit(4));
@@ -116,7 +151,7 @@ export default function Home({ setPage, cart, setCart }) {
         }));
         setProducts(items);
       } catch (error) {
-        console.error("Firebase Fetch Error:", error);
+        console.error("Firebase Error:", error);
       }
     };
     fetchFeatured();
@@ -139,14 +174,13 @@ export default function Home({ setPage, cart, setCart }) {
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden select-none">
       
-      {/* --- LIQUID FLUID CANVAS BACKGROUND --- */}
+      {/* --- ADVANCED LIQUID DRIP CANVAS --- */}
       <canvas 
         ref={canvasRef} 
-        className="fixed inset-0 z-0 pointer-events-none opacity-60"
-        style={{ filter: "blur(20px)" }}
+        className="fixed inset-0 z-0 pointer-events-none opacity-50"
+        style={{ filter: "blur(4px)" }} // ටිකක් උකු ගතියක් එන්න blur කළා
       />
 
-      {/* Static Cyber Grid */}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-10">
         <div className="absolute inset-0" style={{
           backgroundImage: `linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)`,
@@ -155,10 +189,9 @@ export default function Home({ setPage, cart, setCart }) {
       </div>
 
       <div className="relative z-10">
-        {/* 1. HERO SECTION */}
+        {/* HERO SECTION */}
         <div className="relative h-[85vh] flex items-center border-b-2 border-white/10">
           <div className="max-w-7xl mx-auto px-6 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            
             <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
               <span className="inline-block px-4 py-1 rounded-full border border-amber-500 text-amber-500 text-sm font-black mb-6 animate-pulse uppercase">
                 NEW ARRIVALS 2025
@@ -190,8 +223,8 @@ export default function Home({ setPage, cart, setCart }) {
           </div>
         </div>
 
-        {/* 2. TRUST BADGES */}
-        <div className="bg-white text-black py-10 px-6 font-black uppercase italic">
+        {/* TRUST BADGES */}
+        <div className="bg-white text-black py-10 px-6 font-black uppercase italic relative z-20">
           <div className="max-w-7xl mx-auto flex flex-wrap justify-around gap-8">
             <div className="flex items-center gap-3"><Truck className="w-8 h-8"/> ISLANDWIDE DELIVERY</div>
             <div className="flex items-center gap-3"><ShieldCheck className="w-8 h-8"/> GENUINE WARRANTY</div>
@@ -199,13 +232,13 @@ export default function Home({ setPage, cart, setCart }) {
           </div>
         </div>
 
-        {/* 3. FEATURED PRODUCTS (3D TILT ENABLED) */}
+        {/* FEATURED PRODUCTS (WITH COLLISION DETECTION) */}
         <div className="max-w-7xl mx-auto px-6 py-24 relative">
           <h2 className="text-4xl font-black mb-12 italic uppercase border-l-8 border-amber-500 pl-4 tracking-tighter">FEATURED HARDWARE</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {products.map((p) => (
-              <TiltCard key={p.id} className="group">
-                <div className="bg-zinc-900/40 border border-white/10 p-6 rounded-3xl backdrop-blur-xl hover:border-amber-500/50 transition-all shadow-2xl">
+              <TiltCard key={p.id} id={`card-${p.id}`} className="group">
+                <div className="bg-zinc-900/40 border border-white/10 p-6 rounded-3xl backdrop-blur-xl hover:border-amber-500/50 transition-all shadow-2xl relative overflow-hidden">
                   <div className="aspect-square bg-black rounded-2xl flex items-center justify-center mb-6 overflow-hidden">
                     <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />
                   </div>
@@ -220,7 +253,7 @@ export default function Home({ setPage, cart, setCart }) {
           </div>
         </div>
 
-        {/* 4. CALL TO ACTION */}
+        {/* CALL TO ACTION */}
         <div className="px-6 mb-20">
             <div className="bg-amber-500 p-16 text-black text-center rounded-[50px] shadow-[0_0_100px_rgba(245,158,11,0.2)]">
                <h2 className="text-5xl font-black mb-6 italic uppercase tracking-tighter">READY TO BUILD YOUR DREAM RIG?</h2>
