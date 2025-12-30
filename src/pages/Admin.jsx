@@ -23,7 +23,6 @@ const Admin = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  // Product Form States
   const [name, setName] = useState("");
   const [selectedBrand, setSelectedBrand] = useState(""); 
   const [buyingPrice, setBuyingPrice] = useState("");
@@ -31,8 +30,6 @@ const Admin = () => {
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
-  
-  // Compatibility Fields
   const [socket, setSocket] = useState(""); 
   const [ramType, setRamType] = useState(""); 
 
@@ -66,17 +63,19 @@ const Admin = () => {
     }
     setFormLoading(true);
     try {
+      const formattedCategory = category.toLowerCase().trim();
+      
       await addDoc(collection(db, "products"), {
         name,
         brand: selectedBrand,
         buyingPrice: Number(buyingPrice),
         sellingPrice: Number(sellingPrice),
         stock: Number(stock),
-        category,
+        category: formattedCategory,
         image: image || "https://via.placeholder.com/150",
-        // Logic Updated: Includes Cooling for socket compatibility
-        socket: (category.toLowerCase().includes('cpu') || category.toLowerCase().includes('motherboard') || category.toLowerCase().includes('cool')) ? socket : null,
-        ramType: (category.toLowerCase().includes('ram') || category.toLowerCase().includes('motherboard')) ? ramType : null,
+        // Logic Fix: Store socket/ramType properly based on category
+        socket: (formattedCategory.includes('cpu') || formattedCategory.includes('motherboard') || formattedCategory.includes('cool')) ? socket.trim() : null,
+        ramType: (formattedCategory.includes('ram') || formattedCategory.includes('motherboard')) ? ramType.trim() : null,
         createdAt: serverTimestamp()
       });
       setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); 
@@ -89,7 +88,7 @@ const Admin = () => {
   const handleAddCategory = async () => {
     if (!newCatName) return;
     try {
-      await addDoc(collection(db, "categories"), { name: newCatName });
+      await addDoc(collection(db, "categories"), { name: newCatName.trim() });
       setNewCatName("");
       showToast("Category Added");
     } catch (e) { showToast("Error", "error"); }
@@ -98,7 +97,7 @@ const Admin = () => {
   const handleAddBrand = async () => {
     if (!newBrandName) return;
     try {
-      await addDoc(collection(db, "brands"), { name: newBrandName });
+      await addDoc(collection(db, "brands"), { name: newBrandName.trim() });
       setNewBrandName("");
       showToast("Brand Added");
     } catch (e) { showToast("Error", "error"); }
@@ -192,7 +191,7 @@ const Admin = () => {
                 </div>
               </div>
 
-              {/* DYNAMIC COMPATIBILITY FIELDS UPDATED FOR COOLING */}
+              {/* DYNAMIC COMPATIBILITY FIELDS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/40 p-8 rounded-[35px] border border-white/5">
                 <div className={!(category.toLowerCase().includes('cpu') || category.toLowerCase().includes('motherboard') || category.toLowerCase().includes('cool')) ? 'opacity-20 pointer-events-none' : ''}>
                   <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-widest italic">Socket Compatibility</label>

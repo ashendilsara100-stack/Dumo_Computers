@@ -28,28 +28,28 @@ const PCBuilder = ({ cart, setCart }) => {
     setTotalPrice(total);
   }, [selectedComponents]);
 
-  // --- COMPATIBILITY ENGINE (FIXED LOGIC) ---
+  // --- COMPATIBILITY ENGINE ---
   const getFilteredItems = (category) => {
-    let items = products.filter(p => p.category?.toLowerCase() === category.toLowerCase());
+    // 1. Get all items in the current category
+    let items = products.filter(p => p.category?.toLowerCase().trim() === category.toLowerCase());
 
-    // 1. Motherboard Filter (Based on CPU Socket)
+    // 2. Motherboard Logic (Filters based on CPU Socket)
     if (category === 'motherboard' && selectedComponents.cpu) {
-      items = items.filter(mb => mb.socket === selectedComponents.cpu.socket);
+      items = items.filter(mb => mb.socket?.toLowerCase() === selectedComponents.cpu.socket?.toLowerCase());
     }
 
-    // 2. RAM Filter (Based on Motherboard RAM Type)
+    // 3. RAM Logic (Filters based on Motherboard RAM Type)
     if (category === 'ram' && selectedComponents.motherboard) {
-      items = items.filter(ram => ram.ramType === selectedComponents.motherboard.ramType);
+      items = items.filter(ram => ram.ramType?.toLowerCase() === selectedComponents.motherboard.ramType?.toLowerCase());
     }
 
-    // 3. Cooling Filter (Show all first, filter when CPU/MB selected)
+    // 4. Cooling Logic
     if (category === 'cooling') {
       const activeSocket = selectedComponents.motherboard?.socket || selectedComponents.cpu?.socket;
       if (activeSocket) {
         items = items.filter(cooler => 
           cooler.socket === "Universal" || 
-          (Array.isArray(cooler.supportedSockets) && cooler.supportedSockets.includes(activeSocket)) ||
-          cooler.socket === activeSocket
+          cooler.socket?.toLowerCase() === activeSocket.toLowerCase()
         );
       }
     }
@@ -114,7 +114,6 @@ const PCBuilder = ({ cart, setCart }) => {
           <div className="lg:col-span-8 space-y-6">
             {Object.keys(componentLabels).map((cat) => {
               const items = getFilteredItems(cat);
-              // Logic Fix: items පෙන්වන එක block කරන්න එපා, select කරන්න කලින් message එක විතරක් පෙන්වන්න
               const isLocked = (cat === 'motherboard' && !selectedComponents.cpu) || (cat === 'ram' && !selectedComponents.motherboard);
 
               return (
@@ -144,16 +143,16 @@ const PCBuilder = ({ cart, setCart }) => {
                               <p className="font-black text-[10px] uppercase italic truncate leading-tight mb-1">{item.name}</p>
                               <p className={`text-sm font-black italic ${selectedComponents[cat]?.id === item.id ? 'text-black' : 'text-amber-500'}`}>LKR {Number(item.sellingPrice).toLocaleString()}</p>
                               <div className="flex gap-2 mt-1">
-                                {item.socket && <span className="text-[7px] font-black bg-white/5 px-2 py-0.5 rounded uppercase">Socket: {item.socket}</span>}
-                                {item.ramType && <span className="text-[7px] font-black bg-white/5 px-2 py-0.5 rounded uppercase">{item.ramType}</span>}
+                                {item.socket && <span className="text-[7px] font-bold opacity-50 uppercase">Socket: {item.socket}</span>}
+                                {item.ramType && <span className="text-[7px] font-bold opacity-50 uppercase">{item.ramType}</span>}
                               </div>
                             </div>
                             {selectedComponents[cat]?.id === item.id && <CheckCircle size={20} />}
                           </div>
                         )) : (
-                          <div className="col-span-2 py-10 text-center bg-zinc-900/20 rounded-3xl border border-dashed border-white/10">
-                            <AlertCircle size={24} className="mx-auto mb-3 text-zinc-700" />
-                            <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No compatible {componentLabels[cat]} in stock</p>
+                          <div className="col-span-2 py-6 text-center bg-zinc-900/20 rounded-3xl border border-dashed border-white/10">
+                            <AlertCircle size={20} className="mx-auto mb-2 text-zinc-700" />
+                            <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No compatible components in stock</p>
                           </div>
                         )}
                       </div>
