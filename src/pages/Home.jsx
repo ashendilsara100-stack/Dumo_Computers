@@ -45,7 +45,7 @@ export default function Home({ setPage, cart, setCart }) {
     <div className="min-h-screen bg-black text-white relative">
       
       {/* 1. HERO SECTION */}
-      <div className="relative h-[70vh] flex items-center overflow-hidden border-b-2 border-white/10">
+      <div className="relative h-[85vh] flex items-center overflow-hidden border-b-2 border-white/10">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
         
@@ -69,11 +69,26 @@ export default function Home({ setPage, cart, setCart }) {
               </button>
             </div>
           </div>
-          <div className="hidden lg:flex justify-center">
-             <div className="relative p-12 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm">
-                <Package className="w-64 h-64 text-amber-500 opacity-80" />
-                <div className="absolute -top-4 -right-4 bg-white text-black p-6 rounded-2xl font-black shadow-2xl rotate-12 uppercase italic">Premium Hardware</div>
-             </div>
+
+          {/* RIGHT SIDE: IMAGE WITH FLOATING ANIMATION */}
+          <div className="hidden lg:flex justify-center relative">
+              <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-[120px] animate-pulse"></div>
+              <motion.div 
+                animate={{ y: [0, -25, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                className="relative z-10 flex justify-center items-center"
+              >
+                {/* මෙතනට ඔයාගේ Transparent PC Image එකක් දාන්න */}
+                <img 
+                  src="https://i.ibb.co/4ncnrkhC/download-10.jpg" 
+                  alt="High End PC" 
+                  className="w-[500px] h-auto drop-shadow-[0_35px_35px_rgba(245,158,11,0.4)]"
+                />
+                
+                <div className="absolute -top-4 -right-4 bg-white text-black p-6 rounded-2xl font-black shadow-2xl rotate-12 uppercase italic">
+                    Premium Hardware
+                </div>
+              </motion.div>
           </div>
         </div>
       </div>
