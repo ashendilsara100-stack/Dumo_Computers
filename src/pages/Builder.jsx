@@ -3,7 +3,7 @@ import { db } from "../firebase/config";
 import { collection, onSnapshot } from "firebase/firestore";
 import { 
   Cpu, HardDrive, Zap, Box, Fan, Monitor, ShoppingCart, 
-  CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle 
+  CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -30,20 +30,13 @@ const PCBuilder = ({ cart, setCart }) => {
 
   // --- COMPATIBILITY ENGINE ---
   const getFilteredItems = (category) => {
-    // 1. Get all items in the current category
     let items = products.filter(p => p.category?.toLowerCase().trim() === category.toLowerCase());
-
-    // 2. Motherboard Logic (Filters based on CPU Socket)
     if (category === 'motherboard' && selectedComponents.cpu) {
       items = items.filter(mb => mb.socket?.toLowerCase() === selectedComponents.cpu.socket?.toLowerCase());
     }
-
-    // 3. RAM Logic (Filters based on Motherboard RAM Type)
     if (category === 'ram' && selectedComponents.motherboard) {
       items = items.filter(ram => ram.ramType?.toLowerCase() === selectedComponents.motherboard.ramType?.toLowerCase());
     }
-
-    // 4. Cooling Logic
     if (category === 'cooling') {
       const activeSocket = selectedComponents.motherboard?.socket || selectedComponents.cpu?.socket;
       if (activeSocket) {
@@ -53,7 +46,6 @@ const PCBuilder = ({ cart, setCart }) => {
         );
       }
     }
-
     return items;
   };
 
@@ -70,6 +62,24 @@ const PCBuilder = ({ cart, setCart }) => {
     t.innerHTML = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
+  };
+
+  // --- NEW: SHARE & CLIPBOARD LOGIC ---
+  const handleShareBuild = () => {
+    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+
+    const buildText = `🖥️ *DUMO PC BUILD SUMMARY*\n` +
+      `--------------------------\n` +
+      selectedItems.map(([cat, comp]) => `• *${componentLabels[cat]}*: ${comp.name}`).join('\n') +
+      `\n--------------------------\n` +
+      `💰 *Total Price: LKR ${totalPrice.toLocaleString()}*`;
+
+    navigator.clipboard.writeText(buildText).then(() => {
+      showToast("BUILD COPIED TO CLIPBOARD!", "border-green-500");
+    }).catch(err => {
+      showToast("FAILED TO COPY!", "border-red-500");
+    });
   };
 
   const handleDownloadQuotation = () => {
@@ -179,7 +189,15 @@ const PCBuilder = ({ cart, setCart }) => {
                 ))}
               </div>
               <div className="space-y-3">
-                <button onClick={handleDownloadQuotation} className="w-full bg-blue-600 text-white py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all text-[10px] tracking-[0.2em] uppercase italic shadow-xl shadow-blue-600/20"><FileDown size={18} /> Download Quote</button>
+                {/* SHARE BUILD BUTTON */}
+                <button onClick={handleShareBuild} className="w-full bg-zinc-800 text-white py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-zinc-700 transition-all text-[10px] tracking-[0.2em] uppercase italic border border-white/10 shadow-xl">
+                  <Share2 size={18} /> Share Build
+                </button>
+                
+                <button onClick={handleDownloadQuotation} className="w-full bg-blue-600 text-white py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all text-[10px] tracking-[0.2em] uppercase italic shadow-xl shadow-blue-600/20">
+                  <FileDown size={18} /> Download Quote
+                </button>
+                
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={handleWhatsApp} className="bg-green-600 text-white py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg shadow-green-600/10"><MessageCircle size={16} /> WhatsApp</button>
                   <button onClick={() => { setCart([...cart, ...Object.values(selectedComponents).filter(c => c)]); showToast("ADDED TO CART!", "border-amber-500")}} className="bg-white text-black py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg"><ShoppingCart size={16} /> Add All</button>
