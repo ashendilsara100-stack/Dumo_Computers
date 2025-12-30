@@ -6,7 +6,7 @@ import { ShoppingCart, Package, ArrowRight, ShieldCheck, Truck, Zap } from "luci
 export default function Home({ setPage, cart, setCart }) {
   const [products, setProducts] = useState([]);
 
-  // Firebase එකෙන් Products ලෝඩ් කිරීම
+  // 1. Firebase එකෙන් ඇත්තම Products 4ක් ලෝඩ් කිරීම
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
@@ -19,14 +19,17 @@ export default function Home({ setPage, cart, setCart }) {
         }));
         setProducts(items);
       } catch (error) {
-        console.error("Firebase Error:", error);
+        console.error("Firebase Fetch Error:", error);
       }
     };
     fetchFeatured();
   }, []);
 
+  // 2. Cart එක update කරන Function එක
   const addToCart = (p) => {
     setCart([...cart, p]);
+    // බඩුවක් ඇඩ් වුණාම පොඩි notification එකක් පෙන්වීමට:
+    console.log("Added to cart:", p.name);
   };
 
   return (
@@ -40,7 +43,7 @@ export default function Home({ setPage, cart, setCart }) {
         <div className="max-w-7xl mx-auto px-6 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="z-10 text-center lg:text-left">
             <span className="inline-block px-4 py-1 rounded-full border border-amber-500 text-amber-500 text-sm font-black mb-6 animate-pulse uppercase">
-              New Arrivals 2025
+              NEW ARRIVALS 2025
             </span>
             <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter leading-none uppercase">
               LEVEL UP <br /> <span className="text-amber-500">YOUR GAME.</span>
@@ -49,7 +52,6 @@ export default function Home({ setPage, cart, setCart }) {
               Sri Lanka's most trusted destination for high-end gaming PC components and custom builds.
             </p>
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-              {/* setPage පාවිච්චි කරලා පේජ් මාරු කිරීම */}
               <button 
                 onClick={() => setPage("shop")}
                 className="px-10 py-5 bg-white text-black font-black rounded-xl hover:bg-amber-500 transition-all flex items-center gap-2 group uppercase italic"
@@ -68,44 +70,44 @@ export default function Home({ setPage, cart, setCart }) {
           <div className="hidden lg:flex justify-center">
              <div className="relative p-12 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm">
                 <Package className="w-64 h-64 text-amber-500 opacity-80" />
-                <div className="absolute -top-4 -right-4 bg-white text-black p-6 rounded-2xl font-black shadow-2xl rotate-12">
-                   PREMIUM STOCKS
+                <div className="absolute -top-4 -right-4 bg-white text-black p-6 rounded-2xl font-black shadow-2xl rotate-12 uppercase italic">
+                   Premium Hardware
                 </div>
              </div>
           </div>
         </div>
       </div>
 
-      {/* 2. TRUST BADGES */}
+      {/* 2. TRUST BADGES SECTION */}
       <div className="bg-white text-black py-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-between gap-8">
           <div className="flex items-center gap-4">
             <Truck className="w-10 h-10" />
-            <div><p className="font-black leading-none uppercase">Islandwide Delivery</p><p className="text-sm">Safe & Secure Shipping</p></div>
+            <div><p className="font-black leading-none uppercase">ISLANDWIDE DELIVERY</p><p className="text-sm font-bold opacity-70 italic">Safe & Secure Shipping</p></div>
           </div>
           <div className="flex items-center gap-4 border-x-0 md:border-x border-black/10 px-0 md:px-12">
             <ShieldCheck className="w-10 h-10" />
-            <div><p className="font-black leading-none uppercase">Genuine Warranty</p><p className="text-sm">Official Brand Warranty</p></div>
+            <div><p className="font-black leading-none uppercase">GENUINE WARRANTY</p><p className="text-sm font-bold opacity-70 italic">Official Brand Warranty</p></div>
           </div>
           <div className="flex items-center gap-4">
             <Zap className="w-10 h-10" />
-            <div><p className="font-black leading-none uppercase">Tech Support</p><p className="text-sm">Expert Advice Anytime</p></div>
+            <div><p className="font-black leading-none uppercase">TECH SUPPORT</p><p className="text-sm font-bold opacity-70 italic">Expert Advice Anytime</p></div>
           </div>
         </div>
       </div>
 
-      {/* 3. FEATURED PRODUCTS */}
+      {/* 3. FEATURED PRODUCTS (Real Data Connected) */}
       <div className="max-w-7xl mx-auto px-6 py-24">
         <div className="flex justify-between items-end mb-12">
           <div>
-            <h2 className="text-4xl font-black mb-2 italic uppercase">Featured Hardware</h2>
+            <h2 className="text-4xl font-black mb-2 italic uppercase tracking-tighter">FEATURED HARDWARE</h2>
             <div className="w-20 h-2 bg-amber-500"></div>
           </div>
           <button 
             onClick={() => setPage("shop")}
             className="hidden md:flex items-center gap-2 text-amber-500 font-black hover:underline uppercase italic text-sm"
           >
-            View All Products <ArrowRight className="w-4 h-4" />
+            VIEW ALL PRODUCTS <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -114,18 +116,20 @@ export default function Home({ setPage, cart, setCart }) {
             <div key={p.id} className="group relative bg-zinc-900/50 border border-white/10 p-6 rounded-3xl hover:bg-zinc-800 transition-all">
               <div className="aspect-square bg-black rounded-2xl flex items-center justify-center mb-6 border border-white/5 overflow-hidden">
                 <img 
-                  src={p.image || "https://via.placeholder.com/150"} 
+                  src={p.image || "https://via.placeholder.com/150?text=DUMO"} 
                   alt={p.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100"
                 />
               </div>
               <h3 className="font-bold text-xl mb-2 group-hover:text-amber-500 transition-colors truncate uppercase italic">{p.name}</h3>
               <p className="text-2xl font-black mb-6 tracking-tight italic">LKR {p.price.toLocaleString()}</p>
+              
+              {/* ADD TO CART BUTTON */}
               <button 
                 onClick={() => addToCart(p)}
                 className="w-full py-4 bg-white text-black rounded-xl font-black flex items-center justify-center gap-2 hover:bg-amber-500 active:scale-95 transition-all uppercase italic"
               >
-                <ShoppingCart className="w-5 h-5" /> Add
+                <ShoppingCart className="w-5 h-5" /> ADD
               </button>
             </div>
           ))}
@@ -134,13 +138,13 @@ export default function Home({ setPage, cart, setCart }) {
 
       {/* 4. CALL TO ACTION */}
       <div className="bg-amber-500 py-20 px-6 text-black text-center mx-6 mb-12 rounded-[50px]">
-         <h2 className="text-5xl font-black mb-6 italic uppercase">Ready to build your dream rig?</h2>
+         <h2 className="text-5xl font-black mb-6 italic uppercase tracking-tighter">READY TO BUILD YOUR DREAM RIG?</h2>
          <p className="text-xl font-bold mb-8 max-w-2xl mx-auto opacity-80">
             Our experts are ready to help you choose the best parts for your budget. WhatsApp us for a custom quote.
          </p>
-         <a href="https://wa.me/94771234567" target="_blank" rel="noopener noreferrer">
+         <a href="https://wa.me/94742299006" target="_blank" rel="noopener noreferrer">
             <button className="bg-black text-white px-12 py-5 rounded-2xl font-black text-xl hover:scale-110 transition-all uppercase italic">
-              Get a Quote Now
+              GET A QUOTE NOW
             </button>
          </a>
       </div>
