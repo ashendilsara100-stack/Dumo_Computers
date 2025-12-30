@@ -74,12 +74,13 @@ const Admin = () => {
         stock: Number(stock),
         category,
         image: image || "https://via.placeholder.com/150",
-        socket: (category.toLowerCase() === 'cpu' || category.toLowerCase() === 'motherboard' || category.toLowerCase() === 'cooling') ? socket : null,
-        ramType: (category.toLowerCase() === 'ram' || category.toLowerCase() === 'motherboard') ? ramType : null,
+        // Logic Updated: Includes Cooling for socket compatibility
+        socket: (category.toLowerCase().includes('cpu') || category.toLowerCase().includes('motherboard') || category.toLowerCase().includes('cool')) ? socket : null,
+        ramType: (category.toLowerCase().includes('ram') || category.toLowerCase().includes('motherboard')) ? ramType : null,
         createdAt: serverTimestamp()
       });
       setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); 
-      setImage(""); setSelectedBrand(""); setSocket(""); setRamType("");
+      setImage(""); setSelectedBrand(""); setSocket(""); setRamType(""); setCategory("");
       showToast("Product published successfully!");
     } catch (error) { showToast("Error saving product", "error"); }
     setFormLoading(false);
@@ -146,7 +147,6 @@ const Admin = () => {
 
       <div className="flex-1 p-12 overflow-y-auto">
         
-        {/* DASHBOARD TAB */}
         {activeTab === 'dashboard' && (
           <div className="space-y-10 animate-in fade-in duration-700">
             <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Dashboard</h1>
@@ -167,7 +167,6 @@ const Admin = () => {
           </div>
         )}
 
-        {/* INVENTORY TAB */}
         {activeTab === 'inventory' && (
           <div className="space-y-10 animate-in fade-in duration-700">
             <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Inventory</h1>
@@ -175,30 +174,31 @@ const Admin = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-2">
                   <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Product Name</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm" />
+                  <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm text-white" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Category</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none font-black uppercase italic text-sm cursor-pointer focus:border-amber-500">
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none font-black uppercase italic text-sm cursor-pointer focus:border-amber-500 text-white">
                     <option value="">Select Category</option>
                     {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Brand</label>
-                  <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none font-black uppercase italic text-sm cursor-pointer focus:border-amber-500">
+                  <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none font-black uppercase italic text-sm cursor-pointer focus:border-amber-500 text-white">
                     <option value="">Select Brand</option>
                     {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/40 p-8 rounded-[35px] border border-white/5 animate-in fade-in duration-500">
-                <div className={!(category.toLowerCase()==='cpu' || category.toLowerCase()==='motherboard' || category.toLowerCase()==='cooling') ? 'opacity-20 pointer-events-none' : ''}>
+              {/* DYNAMIC COMPATIBILITY FIELDS UPDATED FOR COOLING */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/40 p-8 rounded-[35px] border border-white/5">
+                <div className={!(category.toLowerCase().includes('cpu') || category.toLowerCase().includes('motherboard') || category.toLowerCase().includes('cool')) ? 'opacity-20 pointer-events-none' : ''}>
                   <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-widest italic">Socket Compatibility</label>
-                  <input placeholder="e.g. LGA1150, LGA1700, AM4" value={socket} onChange={(e) => setSocket(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm" />
+                  <input placeholder="e.g. LGA1700, AM4, AM5" value={socket} onChange={(e) => setSocket(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm text-white" />
                 </div>
-                <div className={!(category.toLowerCase()==='ram' || category.toLowerCase()==='motherboard') ? 'opacity-20 pointer-events-none' : ''}>
+                <div className={!(category.toLowerCase().includes('ram') || category.toLowerCase().includes('motherboard')) ? 'opacity-20 pointer-events-none' : ''}>
                   <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-widest italic">RAM Generation</label>
                   <div className="grid grid-cols-4 gap-2">
                     {['DDR2', 'DDR3', 'DDR4', 'DDR5'].map((type) => (
@@ -209,14 +209,15 @@ const Admin = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
-                <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Stock</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-sm" /></div>
-                <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-3 block tracking-widest">Cost</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-red-500/10 p-5 rounded-2xl outline-none focus:border-red-500 font-black text-sm" /></div>
-                <div><label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-3 block tracking-widest">Selling</label><input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-green-500/10 p-5 rounded-2xl outline-none focus:border-green-500 font-black text-sm" /></div>
+                <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Stock</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-sm text-white" /></div>
+                <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-3 block tracking-widest">Cost</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-red-500/10 p-5 rounded-2xl outline-none focus:border-red-500 font-black text-sm text-white" /></div>
+                <div><label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-3 block tracking-widest">Selling</label><input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-green-500/10 p-5 rounded-2xl outline-none focus:border-green-500 font-black text-sm text-white" /></div>
                 <button disabled={formLoading} onClick={handleAddProduct} className="bg-white text-black h-[68px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm flex items-center justify-center gap-3 shadow-2xl">{formLoading ? <RefreshCw className="animate-spin" /> : "Publish Product"}</button>
               </div>
-              <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL (Direct Link)" className="w-full bg-black/50 border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-[10px] text-zinc-500 italic" />
+              <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL (Direct Link)" className="w-full bg-black/50 border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-[10px] text-zinc-500 italic text-white" />
             </div>
 
+            {/* PRODUCT TABLE */}
             <div className="bg-zinc-950 border border-white/10 rounded-[40px] overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase tracking-widest border-b border-white/5">
@@ -237,18 +238,16 @@ const Admin = () => {
           </div>
         )}
 
-        {/* STORE SETUP TAB - මේ කොටස ඔයාගේ පරණ කෝඩ් එකේ තිබුණේ නැහැ */}
+        {/* SETUP TAB */}
         {activeTab === 'setup' && (
           <div className="space-y-16 animate-in fade-in duration-700">
             <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Store Setup</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-              
-              {/* Category Management */}
               <div className="space-y-8">
                 <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-6">
                   <h2 className="text-xl font-black italic uppercase tracking-widest text-amber-500">Categories</h2>
                   <div className="flex gap-4">
-                    <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Category Name" className="flex-1 bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic" />
+                    <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Category Name" className="flex-1 bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-white" />
                     <button onClick={handleAddCategory} className="bg-white text-black px-8 rounded-2xl font-black uppercase italic hover:bg-amber-500 transition-all active:scale-95">Add</button>
                   </div>
                 </div>
@@ -261,13 +260,11 @@ const Admin = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Brand Management */}
               <div className="space-y-8">
                 <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-6">
                   <h2 className="text-xl font-black italic uppercase tracking-widest text-blue-500">Brands</h2>
                   <div className="flex gap-4">
-                    <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="Brand Name" className="flex-1 bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic" />
+                    <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="Brand Name" className="flex-1 bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-white" />
                     <button onClick={handleAddBrand} className="bg-white text-black px-8 rounded-2xl font-black uppercase italic hover:bg-blue-500 transition-all active:scale-95">Add</button>
                   </div>
                 </div>
@@ -280,11 +277,9 @@ const Admin = () => {
                   ))}
                 </div>
               </div>
-
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
