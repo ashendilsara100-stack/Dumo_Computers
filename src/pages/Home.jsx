@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-// --- 3D TILT CARD COMPONENT WITH LOADING ANIMATION ---
 const TiltCard = ({ children, className, id, index }) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -52,8 +51,10 @@ export default function Home({ setPage, cart, setCart }) {
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    let drops = [];
-    let mouse = { x: -1000, y: -1000 };
+    let particles = [];
+    let stars = [];
+    let mouse = { x: -1000, y: -1000, active: false };
+    let isClicking = false;
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -62,37 +63,46 @@ export default function Home({ setPage, cart, setCart }) {
     window.addEventListener("resize", resize);
     resize();
 
-    // --- REALISTIC LIQUID FLOW LOGIC ---
-    class Drop {
-      constructor(x, y, isMouse = false) {
-        this.init(x, y, isMouse);
+    // --- SUPERNOVA & BLACK HOLE PARTICLE LOGIC ---
+    class Particle {
+      constructor() {
+        this.init();
       }
 
-      init(x, y, isMouse) {
-        this.x = x || Math.random() * canvas.width;
-        this.y = y || -Math.random() * canvas.height;
-        this.size = Math.random() * 40 + 30; // වඩාත් උකු දියරයක් වීමට විශාල කළා
-        this.speedY = isMouse ? Math.random() * 1.5 + 0.5 : Math.random() * 2 + 1.2;
-        this.vx = 0;
-        // Realistic Water Colors (Cyan & Blue shades)
-        const colors = ["#00f2ff", "#00d4ff", "#008fb3", "#ffffff"];
+      init() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 35 + 25;
+        this.baseSpeedX = (Math.random() - 0.5) * 1;
+        this.baseSpeedY = Math.random() * 1.5 + 0.5;
+        this.vx = this.baseSpeedX;
+        this.vy = this.baseSpeedY;
+        // Amber & Sun Colors
+        const colors = ["#f59e0b", "#fbbf24", "#d97706", "#ffffff"];
         this.color = colors[Math.floor(Math.random() * colors.length)];
       }
 
       update() {
-        this.y += this.speedY;
-        
-        // Mouse interaction (දියරය මවුස් එකෙන් ඈත් වීම)
-        const dx = this.x - mouse.x;
-        const dy = this.y - mouse.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 200) {
-          this.vx += dx * 0.002;
+        if (isClicking) {
+          // --- BLACK HOLE GRAVITY LOGIC ---
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const force = (2000 / dist); // Gravity strength
+          
+          this.vx += (dx / dist) * force;
+          this.vy += (dy / dist) * force;
+          this.size *= 0.98; // Shrink as they enter black hole
+        } else {
+          this.vx = this.baseSpeedX;
+          this.vy = this.baseSpeedY;
+          if (this.size < 30) this.size += 0.5;
         }
-        this.x += this.vx;
-        this.vx *= 0.95;
 
-        if (this.y > canvas.height + 100) {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.y > canvas.height + 100 || this.size < 1) {
           this.init();
           this.y = -100;
         }
@@ -101,34 +111,48 @@ export default function Home({ setPage, cart, setCart }) {
       draw() {
         ctx.beginPath();
         ctx.fillStyle = this.color;
-        // Rounded හැඩය (Metaball සෑදීමට මෙය රවුමක් විය යුතුයි)
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // දියර බින්දු ප්‍රමාණය (Water density)
-    for (let i = 0; i < 40; i++) {
-      drops.push(new Drop());
+    // --- STAR LOGIC ---
+    for (let i = 0; i < 150; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        twinkle: Math.random()
+      });
     }
 
-    const handleMouseMove = (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-      if (Math.random() > 0.8) {
-        drops.push(new Drop(e.clientX, e.clientY, true));
-        if (drops.length > 70) drops.shift();
-      }
-    };
+    for (let i = 0; i < 35; i++) {
+      particles.push(new Particle());
+    }
+
+    const handleMouseMove = (e) => { mouse.x = e.clientX; mouse.y = e.clientY; };
+    const handleMouseDown = () => { isClicking = true; };
+    const handleMouseUp = () => { isClicking = false; };
+
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
 
     const animate = () => {
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drops.forEach(drop => {
-        drop.update();
-        drop.draw();
+
+      // Draw Stars
+      stars.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(Date.now() * 0.001 + s.twinkle))})`;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
       });
+
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
       requestAnimationFrame(animate);
     };
     animate();
@@ -147,6 +171,8 @@ export default function Home({ setPage, cart, setCart }) {
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("contextmenu", handleContextMenu);
     };
   }, []);
@@ -154,11 +180,11 @@ export default function Home({ setPage, cart, setCart }) {
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden select-none">
       
-      {/* --- WATER LIQUID CANVAS WITH IMPROVED METABALL FILTER --- */}
+      {/* --- SUPERNOVA CANVAS WITH METABALL FILTER --- */}
       <canvas 
         ref={canvasRef} 
-        className="fixed inset-0 z-0 pointer-events-none opacity-50"
-        style={{ filter: "blur(40px) contrast(35)" }} // මෙතනින් තමයි ඇත්තම වතුර ගතිය එන්නේ
+        className="fixed inset-0 z-0 pointer-events-none opacity-40"
+        style={{ filter: "blur(40px) contrast(30)" }}
       />
 
       <div className="relative z-10">
