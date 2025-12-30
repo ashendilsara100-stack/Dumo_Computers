@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, Lock, Trash2, LogOut, RefreshCw, 
-  Layers, PlusCircle, CheckCircle2, TrendingUp, DollarSign, ShoppingCart, Briefcase
+  Layers, PlusCircle, CheckCircle2, TrendingUp, DollarSign, ShoppingCart, Briefcase, Upload, Image as ImageIcon
 } from 'lucide-react';
-import { db } from "../firebase/config"; 
+import { db } from "../firebase/config"; // storage අයින් කරන ලදී
 import { 
   collection, addDoc, deleteDoc, doc, 
   serverTimestamp, query, orderBy, onSnapshot
@@ -21,6 +21,7 @@ const Admin = () => {
   const [newBrandName, setNewBrandName] = useState("");
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0); 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
   const [name, setName] = useState("");
@@ -34,10 +35,44 @@ const Admin = () => {
   const [ramType, setRamType] = useState(""); 
 
   const ADMIN_PASSWORD = "1234"; 
+  const IMGBB_API_KEY = "cbabafe642eea7200b76cb9136e84615"; // ඔයාගේ ImgBB API Key එක මෙතනට දාන්න
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+  };
+
+  // --- Image Upload Logic (Updated for ImgBB) ---
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadProgress(10); // පටන් ගත් බව පෙන්වීමට
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      setUploadProgress(50); 
+      const data = await response.json();
+
+      if (data.success) {
+        setImage(data.data.url);
+        setUploadProgress(100);
+        showToast("Image Uploaded Successfully!");
+        setTimeout(() => setUploadProgress(0), 1000);
+      } else {
+        showToast("Upload failed!", "error");
+        setUploadProgress(0);
+      }
+    } catch (error) {
+      showToast("Network error during upload", "error");
+      setUploadProgress(0);
+    }
   };
 
   useEffect(() => {
@@ -57,8 +92,8 @@ const Admin = () => {
 
   const handleAddProduct = async (e) => {
     if (e) e.preventDefault();
-    if (!name || !buyingPrice || !sellingPrice || !stock || !category || !selectedBrand) {
-      showToast("Fill all essential fields!", "error");
+    if (!name || !buyingPrice || !sellingPrice || !stock || !category || !selectedBrand || !image) {
+      showToast("Fill all fields and Upload an Image!", "error");
       return;
     }
     setFormLoading(true);
@@ -72,8 +107,7 @@ const Admin = () => {
         sellingPrice: Number(sellingPrice),
         stock: Number(stock),
         category: formattedCategory,
-        image: image || "https://via.placeholder.com/150",
-        // Logic Fix: Store socket/ramType properly based on category
+        image: image, 
         socket: (formattedCategory.includes('cpu') || formattedCategory.includes('motherboard') || formattedCategory.includes('cool')) ? socket.trim() : null,
         ramType: (formattedCategory.includes('ram') || formattedCategory.includes('motherboard')) ? ramType.trim() : null,
         createdAt: serverTimestamp()
@@ -170,6 +204,33 @@ const Admin = () => {
           <div className="space-y-10 animate-in fade-in duration-700">
             <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Inventory</h1>
             <div className="bg-zinc-900/30 border border-white/10 p-12 rounded-[50px] space-y-10 shadow-2xl">
+              
+              {/* IMAGE UPLOAD SECTION */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-black/40 p-8 rounded-[35px] border border-white/5">
+                <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-[30px] p-8 text-center hover:border-amber-500/50 transition-all">
+                  <input type="file" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  {image ? (
+                    <img src={image} className="w-full h-40 object-contain rounded-xl" alt="Preview" />
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Upload className="text-zinc-500 mb-2" size={30} />
+                      <p className="text-[10px] font-black uppercase italic text-zinc-500">Click to Upload Product Image</p>
+                    </div>
+                  )}
+                  {uploadProgress > 0 && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 transition-all" style={{ width: `${uploadProgress}%` }}></div>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[12px] font-black italic text-amber-500 uppercase tracking-widest">Image Status</p>
+                  <p className="text-[10px] text-zinc-500 uppercase font-bold italic leading-relaxed">
+                    {image ? "Image ready to publish ✓" : "Please select a product image to upload to cloud storage."}
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-2">
                   <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Product Name</label>
@@ -211,9 +272,10 @@ const Admin = () => {
                 <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Stock</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-sm text-white" /></div>
                 <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-3 block tracking-widest">Cost</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-red-500/10 p-5 rounded-2xl outline-none focus:border-red-500 font-black text-sm text-white" /></div>
                 <div><label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-3 block tracking-widest">Selling</label><input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-green-500/10 p-5 rounded-2xl outline-none focus:border-green-500 font-black text-sm text-white" /></div>
-                <button disabled={formLoading} onClick={handleAddProduct} className="bg-white text-black h-[68px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm flex items-center justify-center gap-3 shadow-2xl">{formLoading ? <RefreshCw className="animate-spin" /> : "Publish Product"}</button>
+                <button disabled={formLoading || uploadProgress > 0} onClick={handleAddProduct} className="bg-white text-black h-[68px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm flex items-center justify-center gap-3 shadow-2xl">
+                  {formLoading ? <RefreshCw className="animate-spin" /> : (uploadProgress > 0 ? "Uploading..." : "Publish Product")}
+                </button>
               </div>
-              <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL (Direct Link)" className="w-full bg-black/50 border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-[10px] text-zinc-500 italic text-white" />
             </div>
 
             {/* PRODUCT TABLE */}
