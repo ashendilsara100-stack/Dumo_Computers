@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { 
   ShoppingCart, Package, ArrowRight, ShieldCheck, Truck, Zap, 
-  Share2, Facebook, Instagram, MessageCircle, X, Users, Award, TrendingUp
+  Share2, Facebook, Instagram, MessageCircle, X, Music2, Users, Award, TrendingUp
 } from "lucide-react";
 
 // Firebase Imports
@@ -321,8 +321,8 @@ export default function Home({ setPage, cart, setCart }) {
       <div className="fixed bottom-6 right-6 z-[100]">
         {isSocialOpen && (
           <div className="flex flex-col gap-3 mb-4 animate-fade-in">
-            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
-            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Instagram size={20}/></a>
+            <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
+            <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
             <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
           </div>
         )}
