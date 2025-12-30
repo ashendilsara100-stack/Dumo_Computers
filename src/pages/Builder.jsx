@@ -28,7 +28,7 @@ const PCBuilder = ({ cart, setCart }) => {
     setTotalPrice(total);
   }, [selectedComponents]);
 
-  // --- COMPATIBILITY ENGINE ---
+  // --- COMPATIBILITY ENGINE (FIXED LOGIC) ---
   const getFilteredItems = (category) => {
     let items = products.filter(p => p.category?.toLowerCase() === category.toLowerCase());
 
@@ -37,19 +37,21 @@ const PCBuilder = ({ cart, setCart }) => {
       items = items.filter(mb => mb.socket === selectedComponents.cpu.socket);
     }
 
-    // 2. RAM Filter (Based on Motherboard RAM Type - DDR4/DDR5)
+    // 2. RAM Filter (Based on Motherboard RAM Type)
     if (category === 'ram' && selectedComponents.motherboard) {
       items = items.filter(ram => ram.ramType === selectedComponents.motherboard.ramType);
     }
 
-    // 3. Cooling Filter (Based on Socket Compatibility)
-    if (category === 'cooling' && (selectedComponents.motherboard || selectedComponents.cpu)) {
+    // 3. Cooling Filter (Show all first, filter when CPU/MB selected)
+    if (category === 'cooling') {
       const activeSocket = selectedComponents.motherboard?.socket || selectedComponents.cpu?.socket;
-      items = items.filter(cooler => 
-        cooler.socket === "Universal" || 
-        (Array.isArray(cooler.supportedSockets) && cooler.supportedSockets.includes(activeSocket)) ||
-        cooler.socket === activeSocket
-      );
+      if (activeSocket) {
+        items = items.filter(cooler => 
+          cooler.socket === "Universal" || 
+          (Array.isArray(cooler.supportedSockets) && cooler.supportedSockets.includes(activeSocket)) ||
+          cooler.socket === activeSocket
+        );
+      }
     }
 
     return items;
@@ -112,10 +114,11 @@ const PCBuilder = ({ cart, setCart }) => {
           <div className="lg:col-span-8 space-y-6">
             {Object.keys(componentLabels).map((cat) => {
               const items = getFilteredItems(cat);
+              // Logic Fix: items පෙන්වන එක block කරන්න එපා, select කරන්න කලින් message එක විතරක් පෙන්වන්න
               const isLocked = (cat === 'motherboard' && !selectedComponents.cpu) || (cat === 'ram' && !selectedComponents.motherboard);
 
               return (
-                <div key={cat} className={`rounded-[40px] border-2 transition-all duration-500 ${selectedComponents[cat] ? 'border-amber-500/30 bg-zinc-900/20' : 'border-white/5 bg-zinc-900/5'} ${isLocked ? 'opacity-40 grayscale' : ''}`}>
+                <div key={cat} className={`rounded-[40px] border-2 transition-all duration-500 ${selectedComponents[cat] ? 'border-amber-500/30 bg-zinc-900/20' : 'border-white/5 bg-zinc-900/5'} ${isLocked ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
                   <div className="p-6 md:p-8">
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-4">
@@ -140,15 +143,17 @@ const PCBuilder = ({ cart, setCart }) => {
                             <div className="flex-1 min-w-0">
                               <p className="font-black text-[10px] uppercase italic truncate leading-tight mb-1">{item.name}</p>
                               <p className={`text-sm font-black italic ${selectedComponents[cat]?.id === item.id ? 'text-black' : 'text-amber-500'}`}>LKR {Number(item.sellingPrice).toLocaleString()}</p>
-                              {item.socket && <span className="text-[8px] font-bold opacity-50 uppercase mr-2">Socket: {item.socket}</span>}
-                              {item.ramType && <span className="text-[8px] font-bold opacity-50 uppercase">Type: {item.ramType}</span>}
+                              <div className="flex gap-2 mt-1">
+                                {item.socket && <span className="text-[7px] font-black bg-white/5 px-2 py-0.5 rounded uppercase">Socket: {item.socket}</span>}
+                                {item.ramType && <span className="text-[7px] font-black bg-white/5 px-2 py-0.5 rounded uppercase">{item.ramType}</span>}
+                              </div>
                             </div>
                             {selectedComponents[cat]?.id === item.id && <CheckCircle size={20} />}
                           </div>
                         )) : (
-                          <div className="col-span-2 py-6 text-center bg-zinc-900/20 rounded-3xl border border-dashed border-white/10">
-                            <AlertCircle size={20} className="mx-auto mb-2 text-zinc-700" />
-                            <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No compatible components in stock</p>
+                          <div className="col-span-2 py-10 text-center bg-zinc-900/20 rounded-3xl border border-dashed border-white/10">
+                            <AlertCircle size={24} className="mx-auto mb-3 text-zinc-700" />
+                            <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No compatible {componentLabels[cat]} in stock</p>
                           </div>
                         )}
                       </div>
