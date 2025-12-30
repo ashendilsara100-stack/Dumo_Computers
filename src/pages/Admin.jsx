@@ -78,7 +78,6 @@ const Admin = () => {
         ramType: (category.toLowerCase() === 'ram' || category.toLowerCase() === 'motherboard') ? ramType : null,
         createdAt: serverTimestamp()
       });
-      // Reset Form
       setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); 
       setImage(""); setSelectedBrand(""); setSocket(""); setRamType("");
       showToast("Product published successfully!");
@@ -86,17 +85,37 @@ const Admin = () => {
     setFormLoading(false);
   };
 
+  const handleAddCategory = async () => {
+    if (!newCatName) return;
+    try {
+      await addDoc(collection(db, "categories"), { name: newCatName });
+      setNewCatName("");
+      showToast("Category Added");
+    } catch (e) { showToast("Error", "error"); }
+  };
+
+  const handleAddBrand = async () => {
+    if (!newBrandName) return;
+    try {
+      await addDoc(collection(db, "brands"), { name: newBrandName });
+      setNewBrandName("");
+      showToast("Brand Added");
+    } catch (e) { showToast("Error", "error"); }
+  };
+
   const deleteItem = async (id, collectionName) => {
     if (window.confirm(`Delete this ${collectionName}?`)) {
-      await deleteDoc(doc(db, collectionName, id));
-      showToast("Deleted successfully");
+      try {
+        await deleteDoc(doc(db, collectionName, id));
+        showToast("Deleted successfully");
+      } catch (e) { showToast("Delete failed", "error"); }
     }
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white italic font-sans">
-        <div className="bg-zinc-900 border border-white/10 p-10 rounded-[30px] w-full max-w-md text-center">
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white italic font-sans text-center">
+        <div className="bg-zinc-900 border border-white/10 p-10 rounded-[30px] w-full max-w-md">
           <Lock size={40} className="mx-auto mb-6 text-amber-500" />
           <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">DUMO ADMIN</h2>
           <input type="password" placeholder="Enter Password" title="password" className="w-full bg-black border border-white/10 p-4 rounded-xl mb-4 text-center font-bold outline-none focus:border-amber-500" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -108,7 +127,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-black text-white flex font-sans selection:bg-amber-500">
-      {/* TOAST */}
       {toast.show && (
         <div className={`fixed top-5 right-5 z-[100] px-6 py-3 rounded-xl font-bold border animate-bounce ${toast.type === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 'bg-red-500/10 border-red-500 text-red-500'}`}>
           {toast.message}
@@ -127,10 +145,32 @@ const Admin = () => {
       </div>
 
       <div className="flex-1 p-12 overflow-y-auto">
+        
+        {/* DASHBOARD TAB */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-10 animate-in fade-in duration-700">
+            <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center uppercase italic">
+              <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10">
+                <span className="text-zinc-500 font-black text-xs tracking-widest block mb-4">Total Products</span>
+                <span className="text-6xl font-black tracking-tighter text-amber-500">{products.length}</span>
+              </div>
+              <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10">
+                <span className="text-zinc-500 font-black text-xs tracking-widest block mb-4">Categories</span>
+                <span className="text-6xl font-black tracking-tighter">{categories.length}</span>
+              </div>
+              <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10">
+                <span className="text-zinc-500 font-black text-xs tracking-widest block mb-4">In Stock Items</span>
+                <span className="text-6xl font-black tracking-tighter text-green-500">{products.reduce((acc, p) => acc + Number(p.stock), 0)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* INVENTORY TAB */}
         {activeTab === 'inventory' && (
-          <div className="space-y-10">
+          <div className="space-y-10 animate-in fade-in duration-700">
             <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Inventory</h1>
-            
             <div className="bg-zinc-900/30 border border-white/10 p-12 rounded-[50px] space-y-10 shadow-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-2">
@@ -153,13 +193,11 @@ const Admin = () => {
                 </div>
               </div>
 
-              {/* DYNAMIC COMPATIBILITY FIELDS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/40 p-8 rounded-[35px] border border-white/5 animate-in fade-in duration-500">
                 <div className={!(category.toLowerCase()==='cpu' || category.toLowerCase()==='motherboard' || category.toLowerCase()==='cooling') ? 'opacity-20 pointer-events-none' : ''}>
                   <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-widest italic">Socket Compatibility</label>
                   <input placeholder="e.g. LGA1150, LGA1700, AM4" value={socket} onChange={(e) => setSocket(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm" />
                 </div>
-                
                 <div className={!(category.toLowerCase()==='ram' || category.toLowerCase()==='motherboard') ? 'opacity-20 pointer-events-none' : ''}>
                   <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-widest italic">RAM Generation</label>
                   <div className="grid grid-cols-4 gap-2">
@@ -188,12 +226,7 @@ const Admin = () => {
                   {products.map(p => (
                     <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group">
                       <td className="p-8"><div className="flex items-center gap-6"><img src={p.image} className="w-16 h-16 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all border border-white/5" alt="" /><div className="font-black uppercase italic text-lg">{p.name}<span className="block text-[10px] text-zinc-600 not-italic uppercase mt-1">{p.category} • {p.stock} Units</span></div></div></td>
-                      <td className="p-8">
-                        <div className="flex flex-col gap-1">
-                          {p.socket && <span className="text-[9px] font-black text-amber-500 uppercase italic tracking-tighter bg-amber-500/5 px-2 py-1 rounded w-fit">Socket: {p.socket}</span>}
-                          {p.ramType && <span className="text-[9px] font-black text-blue-500 uppercase italic tracking-tighter bg-blue-500/5 px-2 py-1 rounded w-fit">Type: {p.ramType}</span>}
-                        </div>
-                      </td>
+                      <td className="p-8"><div className="flex flex-col gap-1">{p.socket && <span className="text-[9px] font-black text-amber-500 uppercase italic tracking-tighter bg-amber-500/5 px-2 py-1 rounded w-fit">Socket: {p.socket}</span>}{p.ramType && <span className="text-[9px] font-black text-blue-500 uppercase italic tracking-tighter bg-blue-500/5 px-2 py-1 rounded w-fit">Type: {p.ramType}</span>}</div></td>
                       <td className="p-8 font-black text-xl italic leading-none">LKR {p.sellingPrice?.toLocaleString()}<span className="block text-[9px] text-zinc-700 mt-2 uppercase tracking-widest">Cost: {p.buyingPrice?.toLocaleString()}</span></td>
                       <td className="p-8"><button onClick={() => deleteItem(p.id, "products")} className="text-zinc-800 hover:text-red-500 transition-all hover:scale-125"><Trash2 size={22} /></button></td>
                     </tr>
@@ -203,7 +236,55 @@ const Admin = () => {
             </div>
           </div>
         )}
-        {/* Setup and Dashboard tabs logic goes here... */}
+
+        {/* STORE SETUP TAB - මේ කොටස ඔයාගේ පරණ කෝඩ් එකේ තිබුණේ නැහැ */}
+        {activeTab === 'setup' && (
+          <div className="space-y-16 animate-in fade-in duration-700">
+            <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none">Store Setup</h1>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              
+              {/* Category Management */}
+              <div className="space-y-8">
+                <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-6">
+                  <h2 className="text-xl font-black italic uppercase tracking-widest text-amber-500">Categories</h2>
+                  <div className="flex gap-4">
+                    <input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Category Name" className="flex-1 bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic" />
+                    <button onClick={handleAddCategory} className="bg-white text-black px-8 rounded-2xl font-black uppercase italic hover:bg-amber-500 transition-all active:scale-95">Add</button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {categories.map(cat => (
+                    <div key={cat.id} className="bg-zinc-900/40 p-6 rounded-3xl border border-white/5 flex justify-between items-center group hover:border-amber-500/30 transition-all">
+                      <span className="font-black italic uppercase tracking-widest text-sm">{cat.name}</span>
+                      <button onClick={() => deleteItem(cat.id, "categories")} className="text-zinc-800 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Brand Management */}
+              <div className="space-y-8">
+                <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-6">
+                  <h2 className="text-xl font-black italic uppercase tracking-widest text-blue-500">Brands</h2>
+                  <div className="flex gap-4">
+                    <input value={newBrandName} onChange={(e) => setNewBrandName(e.target.value)} placeholder="Brand Name" className="flex-1 bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic" />
+                    <button onClick={handleAddBrand} className="bg-white text-black px-8 rounded-2xl font-black uppercase italic hover:bg-blue-500 transition-all active:scale-95">Add</button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {brands.map(brand => (
+                    <div key={brand.id} className="bg-zinc-900/40 p-6 rounded-3xl border border-white/5 flex justify-between items-center group hover:border-blue-500/30 transition-all">
+                      <span className="font-black italic uppercase tracking-widest text-sm">{brand.name}</span>
+                      <button onClick={() => deleteItem(brand.id, "brands")} className="text-zinc-800 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
