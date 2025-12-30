@@ -1,163 +1,107 @@
 import React, { useState, useEffect } from 'react';
+import { db } from "../firebase/config";
+import { collection, onSnapshot } from "firebase/firestore";
 import { 
   Cpu, HardDrive, Zap, Box, Fan, Monitor, ShoppingCart, 
-  Save, Share2, CheckCircle, AlertCircle, Package, 
-  Trash2, Activity, FileDown, MessageCircle 
+  CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const PCBuilder = ({ cart, setCart }) => {
+  const [products, setProducts] = useState([]);
   const [selectedComponents, setSelectedComponents] = useState({
     cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooling: null
   });
   const [totalPrice, setTotalPrice] = useState(0);
 
-  // Components Data
-  const components = {
-    cpu: [
-      { id: 101, name: 'Intel Core i9-14900K', price: 125000, socket: 'LGA1700' },
-      { id: 102, name: 'AMD Ryzen 7 7800X3D', price: 105000, socket: 'AM5' },
-      { id: 103, name: 'Intel Core i5-14600K', price: 72000, socket: 'LGA1700' }
-    ],
-    motherboard: [
-      { id: 201, name: 'ASUS ROG Strix Z790-E', price: 85000, socket: 'LGA1700' },
-      { id: 202, name: 'MSI MAG B650 Tomahawk', price: 65000, socket: 'AM5' }
-    ],
-    ram: [
-      { id: 301, name: 'G.Skill Trident Z5 32GB DDR5', price: 45000 },
-      { id: 302, name: 'Corsair Vengeance 16GB DDR4', price: 28000 }
-    ],
-    gpu: [
-      { id: 401, name: 'NVIDIA RTX 4090', price: 450000 },
-      { id: 402, name: 'NVIDIA RTX 4060 Ti', price: 185000 }
-    ],
-    storage: [
-      { id: 501, name: 'Samsung 990 Pro 2TB', price: 48000 },
-      { id: 502, name: 'WD Black 1TB NVMe', price: 28000 }
-    ],
-    psu: [
-      { id: 601, name: 'Corsair RM1000x', price: 42000, wattage: 1000 },
-      { id: 602, name: 'Seasonic 750W Gold', price: 28000, wattage: 750 }
-    ],
-    case: [
-      { id: 701, name: 'Lian Li O11 Dynamic', price: 38000 },
-      { id: 702, name: 'NZXT H7 Flow', price: 32000 }
-    ],
-    cooling: [
-      { id: 801, name: 'NZXT Kraken 360mm AIO', price: 58000 },
-      { id: 802, name: 'Noctua Air Cooler', price: 28000 }
-    ]
-  };
-
-  const componentIcons = { cpu: Cpu, motherboard: Monitor, ram: Zap, gpu: Monitor, storage: HardDrive, psu: Zap, case: Box, cooling: Fan };
-  const componentLabels = { cpu: 'CPU', motherboard: 'Motherboard', ram: 'RAM', gpu: 'GPU', storage: 'Storage', psu: 'PSU', case: 'Case', cooling: 'Cooling' };
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "products"), (snap) => {
+      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
-    const total = Object.values(selectedComponents).reduce((sum, component) => sum + (component?.price || 0), 0);
+    const total = Object.values(selectedComponents).reduce((sum, component) => 
+      sum + (Number(component?.sellingPrice) || 0), 0);
     setTotalPrice(total);
   }, [selectedComponents]);
 
+  // --- COMPATIBILITY ENGINE ---
+  const getFilteredItems = (category) => {
+    let items = products.filter(p => p.category?.toLowerCase() === category.toLowerCase());
+
+    // 1. Motherboard Filter (Based on CPU Socket)
+    if (category === 'motherboard' && selectedComponents.cpu) {
+      items = items.filter(mb => mb.socket === selectedComponents.cpu.socket);
+    }
+
+    // 2. RAM Filter (Based on Motherboard RAM Type - DDR4/DDR5)
+    if (category === 'ram' && selectedComponents.motherboard) {
+      items = items.filter(ram => ram.ramType === selectedComponents.motherboard.ramType);
+    }
+
+    // 3. Cooling Filter (Based on Socket Compatibility)
+    if (category === 'cooling' && (selectedComponents.motherboard || selectedComponents.cpu)) {
+      const activeSocket = selectedComponents.motherboard?.socket || selectedComponents.cpu?.socket;
+      items = items.filter(cooler => 
+        cooler.socket === "Universal" || 
+        (Array.isArray(cooler.supportedSockets) && cooler.supportedSockets.includes(activeSocket)) ||
+        cooler.socket === activeSocket
+      );
+    }
+
+    return items;
+  };
+
+  const componentIcons = { cpu: Cpu, motherboard: Monitor, ram: Zap, gpu: Monitor, storage: HardDrive, psu: Zap, case: Box, cooling: Fan };
+  const componentLabels = { 
+    cpu: 'Processor', motherboard: 'Motherboard', ram: 'Memory (RAM)', 
+    gpu: 'Graphics Card', storage: 'Storage (SSD/HDD)', psu: 'Power Supply', 
+    case: 'Casing', cooling: 'CPU Cooler' 
+  };
+
   const showToast = (msg, borderColor) => {
     const t = document.createElement('div');
-    t.className = `fixed top-24 right-6 bg-white text-black px-8 py-4 rounded-2xl shadow-2xl z-50 animate-bounce font-black border-2 ${borderColor}`;
+    t.className = `fixed top-24 right-6 bg-black text-white px-8 py-4 rounded-2xl shadow-2xl z-50 animate-bounce font-black border-2 ${borderColor}`;
     t.innerHTML = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
   };
 
-  // 1. FIXED PDF LOGIC
   const handleDownloadQuotation = () => {
     const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
     if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
-
-    try {
-      const doc = new jsPDF();
-      const date = new Date().toLocaleDateString();
-
-      // Header Design
-      doc.setFillColor(20, 20, 20);
-      doc.rect(0, 0, 210, 40, 'F');
-      doc.setTextColor(255, 191, 0);
-      doc.setFontSize(24);
-      doc.setFont(undefined, 'bold');
-      doc.text("DUMO COMPUTERS", 14, 25);
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.text(`DATE: ${date} | PC BUILD QUOTATION`, 130, 25);
-
-      const tableRows = selectedItems.map(([cat, comp]) => [
-        componentLabels[cat].toUpperCase(),
-        comp.name,
-        `LKR ${comp.price.toLocaleString()}`
-      ]);
-
-      // Using the imported autoTable directly to avoid the "not a function" error
-      autoTable(doc, {
-        startY: 50,
-        head: [['CATEGORY', 'PRODUCT DESCRIPTION', 'PRICE']],
-        body: tableRows,
-        theme: 'grid',
-        headStyles: { fillColor: [30, 30, 30], textColor: [255, 191, 0], fontStyle: 'bold' },
-        styles: { fontSize: 10, cellPadding: 5 },
-      });
-
-      const finalY = doc.lastAutoTable.finalY + 15;
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(16);
-      doc.setFont(undefined, 'bold');
-      doc.text(`GRAND TOTAL: LKR ${totalPrice.toLocaleString()}`, 14, finalY);
-
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.setFont(undefined, 'normal');
-      doc.text("Thank you for choosing Dumo Computers. Quote valid for 7 days.", 14, finalY + 15);
-
-      doc.save(`Dumo_Quote_${Date.now()}.pdf`);
-      showToast("📥 QUOTATION DOWNLOADED!", "border-blue-500");
-    } catch (error) {
-      console.error("PDF Generation Error:", error);
-      showToast("FAILED TO GENERATE PDF!", "border-red-500");
-    }
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [['CATEGORY', 'PRODUCT', 'PRICE']],
+      body: selectedItems.map(([cat, comp]) => [componentLabels[cat].toUpperCase(), comp.name, `LKR ${Number(comp.sellingPrice).toLocaleString()}`]),
+    });
+    doc.save(`Dumo_Build_${Date.now()}.pdf`);
   };
 
-  // 2. SHARE LOGIC
-  const handleShareBuild = () => {
-    const buildText = Object.entries(selectedComponents)
-      .filter(([_, comp]) => comp !== null)
-      .map(([cat, comp]) => `• ${componentLabels[cat]}: ${comp.name}`)
-      .join('\n');
-
-    if (!buildText) return showToast("NOTHING TO SHARE!", "border-red-500");
-    const finalMessage = `🚀 DUMO COMPUTERS - CUSTOM BUILD\n\n${buildText}\n\n💰 TOTAL: LKR ${totalPrice.toLocaleString()}`;
-    navigator.clipboard.writeText(finalMessage).then(() => showToast("📋 COPIED TO CLIPBOARD!", "border-amber-500"));
-  };
-
-  // 3. WHATSAPP LOGIC
   const handleWhatsApp = () => {
     const buildSummary = Object.entries(selectedComponents)
       .filter(([_, comp]) => comp !== null)
       .map(([cat, comp]) => `*${componentLabels[cat]}*: ${comp.name}`)
       .join('%0A');
-
     if (!buildSummary) return showToast("SELECT PARTS FIRST!", "border-red-500");
-    const message = `Hello Dumo Computers!%0AI want to get a quote for this build:%0A%0A${buildSummary}%0A%0A*Total: LKR ${totalPrice.toLocaleString()}*`;
-    window.open(`https://wa.me/94742299006?text=${message}`, '_blank');
+    window.open(`https://wa.me/94742299006?text=Build Quote:%0A${buildSummary}%0ATotal: LKR ${totalPrice.toLocaleString()}`, '_blank');
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans">
-      <div className="relative pt-32 pb-16 px-6 border-b border-white/10">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500">
+      <div className="relative pt-32 pb-16 px-6 border-b border-white/5 bg-zinc-950/50">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-8">
           <div>
-            <div className="flex items-center gap-2 text-amber-500 font-black text-xs tracking-[0.3em] mb-4 uppercase">
-              <Activity size={16} /> Advanced Configurator
+            <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] tracking-[0.4em] mb-4 uppercase italic">
+              <Activity size={14} className="animate-pulse" /> Compatibility Engine Active
             </div>
-            <h1 className="text-7xl md:text-9xl font-black italic tracking-tighter leading-none">BUILD <span className="text-white/10">YOUR</span> BEAST</h1>
+            <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter leading-none uppercase">PC BUILDER</h1>
           </div>
-          <div className="bg-zinc-900 border border-white/20 p-8 rounded-[40px] min-w-[320px]">
-             <p className="text-gray-500 font-bold text-xs uppercase mb-1">Estimated Total</p>
+          <div className="bg-zinc-900 border border-white/10 p-8 rounded-[40px] min-w-[350px]">
+             <p className="text-zinc-500 font-black text-[10px] uppercase mb-1 italic">Total Estimate</p>
              <p className="text-5xl font-black text-amber-500 italic">LKR {totalPrice.toLocaleString()}</p>
           </div>
         </div>
@@ -165,56 +109,77 @@ const PCBuilder = ({ cart, setCart }) => {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 space-y-8">
-            {Object.entries(components).map(([cat, items]) => (
-              <div key={cat} className={`rounded-[35px] border-2 transition-all ${selectedComponents[cat] ? 'border-amber-500/40 bg-zinc-900/40' : 'border-white/5'}`}>
-                <div className="p-8">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-4 rounded-2xl ${selectedComponents[cat] ? 'bg-amber-500 text-black' : 'bg-zinc-800'}`}>{React.createElement(componentIcons[cat], {size: 28})}</div>
-                      <h2 className="text-2xl font-black uppercase italic">{componentLabels[cat]}</h2>
-                    </div>
-                    {selectedComponents[cat] && <button onClick={() => setSelectedComponents(p => ({...p, [cat]: null}))} className="text-red-500 p-2"><Trash2 size={20} /></button>}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {items.map(item => (
-                      <div key={item.id} onClick={() => setSelectedComponents(p => ({...p, [cat]: item}))} className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex justify-between items-center ${selectedComponents[cat]?.id === item.id ? 'bg-white text-black border-white' : 'bg-transparent border-white/10 hover:border-amber-500/50'}`}>
-                        <div><p className="font-black text-sm uppercase">{item.name}</p><p className="text-lg font-black text-amber-500">LKR {item.price.toLocaleString()}</p></div>
-                        {selectedComponents[cat]?.id === item.id && <CheckCircle size={22} />}
+          <div className="lg:col-span-8 space-y-6">
+            {Object.keys(componentLabels).map((cat) => {
+              const items = getFilteredItems(cat);
+              const isLocked = (cat === 'motherboard' && !selectedComponents.cpu) || (cat === 'ram' && !selectedComponents.motherboard);
+
+              return (
+                <div key={cat} className={`rounded-[40px] border-2 transition-all duration-500 ${selectedComponents[cat] ? 'border-amber-500/30 bg-zinc-900/20' : 'border-white/5 bg-zinc-900/5'} ${isLocked ? 'opacity-40 grayscale' : ''}`}>
+                  <div className="p-6 md:p-8">
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-4 rounded-[20px] ${selectedComponents[cat] ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'bg-zinc-800 text-zinc-500'}`}>
+                          {React.createElement(componentIcons[cat], {size: 24})}
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-black uppercase italic leading-none mb-1">{componentLabels[cat]}</h2>
+                          {isLocked && <p className="text-[9px] text-amber-500 font-black uppercase italic tracking-widest animate-pulse">Waiting for {cat === 'ram' ? 'Motherboard' : 'CPU'} selection...</p>}
+                        </div>
                       </div>
-                    ))}
+                      {selectedComponents[cat] && <button onClick={() => setSelectedComponents(p => ({...p, [cat]: null}))} className="text-red-500 hover:bg-red-500/10 p-2 rounded-full"><Trash2 size={20} /></button>}
+                    </div>
+
+                    {!isLocked && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {items.length > 0 ? items.map(item => (
+                          <div key={item.id} onClick={() => setSelectedComponents(p => ({...p, [cat]: item}))} className={`p-4 rounded-[25px] border-2 cursor-pointer transition-all flex items-center gap-4 ${selectedComponents[cat]?.id === item.id ? 'bg-white text-black border-white shadow-2xl scale-[1.02]' : 'bg-black border-white/5 hover:border-amber-500/50'}`}>
+                            <div className="w-14 h-14 bg-zinc-900 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+                              <img src={item.image || "https://via.placeholder.com/100"} className="w-full h-full object-cover" alt="" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-black text-[10px] uppercase italic truncate leading-tight mb-1">{item.name}</p>
+                              <p className={`text-sm font-black italic ${selectedComponents[cat]?.id === item.id ? 'text-black' : 'text-amber-500'}`}>LKR {Number(item.sellingPrice).toLocaleString()}</p>
+                              {item.socket && <span className="text-[8px] font-bold opacity-50 uppercase mr-2">Socket: {item.socket}</span>}
+                              {item.ramType && <span className="text-[8px] font-bold opacity-50 uppercase">Type: {item.ramType}</span>}
+                            </div>
+                            {selectedComponents[cat]?.id === item.id && <CheckCircle size={20} />}
+                          </div>
+                        )) : (
+                          <div className="col-span-2 py-6 text-center bg-zinc-900/20 rounded-3xl border border-dashed border-white/10">
+                            <AlertCircle size={20} className="mx-auto mb-2 text-zinc-700" />
+                            <p className="text-zinc-600 text-[10px] font-black uppercase italic tracking-widest">No compatible components in stock</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit">
-            <div className="bg-zinc-950 border border-white/10 rounded-[40px] p-8 shadow-2xl relative">
-              <h2 className="text-3xl font-black italic mb-8 flex items-center gap-3"><Box className="text-amber-500" /> BUILD LOG</h2>
-              <div className="space-y-4 mb-10 max-h-[300px] overflow-y-auto pr-2">
+            <div className="bg-zinc-900/50 border border-white/10 rounded-[45px] p-8 backdrop-blur-3xl shadow-3xl">
+              <h2 className="text-2xl font-black italic mb-8 uppercase tracking-tighter flex items-center gap-3">
+                 <Box className="text-amber-500" /> Build Log
+              </h2>
+              <div className="space-y-4 mb-10">
                 {Object.entries(selectedComponents).map(([cat, comp]) => (
-                  <div key={cat} className="flex justify-between border-b border-white/5 pb-2 text-xs">
-                    <span className="text-gray-500 uppercase">{cat}</span>
-                    <span className={comp ? "text-white font-bold" : "text-gray-800"}>{comp ? comp.name : 'Not Selected'}</span>
+                  <div key={cat} className="flex justify-between items-center border-b border-white/5 pb-3">
+                    <span className="text-[10px] text-zinc-600 font-black uppercase italic tracking-widest">{cat}</span>
+                    <span className={`text-[10px] font-black uppercase italic truncate max-w-[150px] ${comp ? "text-white" : "text-zinc-800"}`}>
+                      {comp ? comp.name : 'Not Set'}
+                    </span>
                   </div>
                 ))}
               </div>
               <div className="space-y-3">
-                <button onClick={handleDownloadQuotation} className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
-                  <FileDown size={22} /> DOWNLOAD QUOTATION
-                </button>
+                <button onClick={handleDownloadQuotation} className="w-full bg-blue-600 text-white py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-blue-700 transition-all text-[10px] tracking-[0.2em] uppercase italic shadow-xl shadow-blue-600/20"><FileDown size={18} /> Download Quote</button>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={handleShareBuild} className="bg-zinc-900 border border-white/10 py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2">
-                    <Share2 size={16} /> SHARE
-                  </button>
-                  <button onClick={handleWhatsApp} className="bg-green-600 text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2">
-                    <MessageCircle size={16} /> WHATSAPP
-                  </button>
+                  <button onClick={handleWhatsApp} className="bg-green-600 text-white py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg shadow-green-600/10"><MessageCircle size={16} /> WhatsApp</button>
+                  <button onClick={() => { setCart([...cart, ...Object.values(selectedComponents).filter(c => c)]); showToast("ADDED TO CART!", "border-amber-500")}} className="bg-white text-black py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg"><ShoppingCart size={16} /> Add All</button>
                 </div>
-                <button onClick={() => { setCart([...cart, ...Object.values(selectedComponents).filter(c => c)]); showToast("ADDED TO CART!", "border-amber-500")}} className="w-full bg-amber-500 text-black py-4 rounded-2xl font-black text-xs mt-2">
-                  ADD ALL TO CART
-                </button>
               </div>
             </div>
           </div>

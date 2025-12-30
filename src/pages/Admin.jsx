@@ -31,6 +31,10 @@ const Admin = () => {
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
+  
+  // --- NEW FIELDS FOR PC BUILDER VALIDATION ---
+  const [socket, setSocket] = useState(""); // For CPU, MB, Cooler
+  const [ramType, setRamType] = useState(""); // For MB, RAM (DDR4/DDR5)
 
   const ADMIN_PASSWORD = "dumo_admin_2025"; 
 
@@ -39,7 +43,6 @@ const Admin = () => {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
 
-  // Real-time Data Listeners
   useEffect(() => {
     if (isAuthenticated) {
       const unsubProducts = onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snap) => {
@@ -85,9 +88,14 @@ const Admin = () => {
         stock: Number(stock),
         category,
         image: image || "https://via.placeholder.com/150",
+        // --- ADDING NEW FIELDS TO FIREBASE ---
+        socket: socket || null,
+        ramType: ramType || null,
         createdAt: serverTimestamp()
       });
-      setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); setImage(""); setSelectedBrand("");
+      // Clear Form
+      setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); 
+      setImage(""); setSelectedBrand(""); setSocket(""); setRamType("");
       showToast("Product published!");
     } catch (error) { showToast("Error saving", "error"); }
     setFormLoading(false);
@@ -177,6 +185,22 @@ const Admin = () => {
                 </div>
               </div>
 
+              {/* NEW PC BUILDER SPECS ROW */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-black/30 rounded-[30px] border border-white/5">
+                <div>
+                  <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-[0.2em] italic">Socket Type (CPU / MB / COOLER)</label>
+                  <input placeholder="e.g. LGA1700, AM5, LGA1200" value={socket} onChange={(e) => setSocket(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-3 block tracking-[0.2em] italic">RAM Type (MB / RAM ONLY)</label>
+                  <select value={ramType} onChange={(e) => setRamType(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none font-black uppercase italic text-sm cursor-pointer focus:border-amber-500">
+                    <option value="">N/A</option>
+                    <option value="DDR4">DDR4</option>
+                    <option value="DDR5">DDR5</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-end">
                 <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-3 block tracking-widest">Stock Qty</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-amber-500 font-black text-sm" /></div>
                 <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-3 block tracking-widest">Cost (LKR)</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-red-500/20 p-5 rounded-2xl outline-none focus:border-red-500 font-black text-sm" /></div>
@@ -188,12 +212,24 @@ const Admin = () => {
 
             <div className="bg-zinc-950 border border-white/10 rounded-[40px] overflow-hidden">
               <table className="w-full text-left">
-                <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase tracking-[0.2em] border-b border-white/5"><tr><th className="p-8">Product</th><th className="p-8">Brand</th><th className="p-8">Pricing</th><th className="p-8">Action</th></tr></thead>
+                <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase tracking-[0.2em] border-b border-white/5"><tr><th className="p-8">Product</th><th className="p-8">Details</th><th className="p-8">Pricing</th><th className="p-8">Action</th></tr></thead>
                 <tbody className="divide-y divide-white/5">
                   {products.map(p => (
                     <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group">
-                      <td className="p-8"><div className="flex items-center gap-6"><img src={p.image} className="w-14 h-14 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all shadow-xl border border-white/5" /><div className="font-black uppercase italic text-lg leading-tight">{p.name}<span className="block text-[10px] text-zinc-600 not-italic uppercase tracking-widest mt-1">{p.category} • {p.stock} In Stock</span></div></div></td>
-                      <td className="p-8 font-black text-amber-500 italic uppercase tracking-widest text-xs">{p.brand}</td>
+                      <td className="p-8">
+                        <div className="flex items-center gap-6">
+                          <img src={p.image} className="w-14 h-14 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all shadow-xl border border-white/5" />
+                          <div className="font-black uppercase italic text-lg leading-tight">
+                            {p.name}
+                            <span className="block text-[10px] text-zinc-600 not-italic uppercase tracking-widest mt-1">{p.category} • {p.stock} In Stock</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-8">
+                        <p className="font-black text-amber-500 italic uppercase tracking-widest text-[10px]">{p.brand}</p>
+                        {p.socket && <span className="text-[9px] bg-white/5 px-2 py-1 rounded-md text-zinc-400 font-bold mr-2 uppercase tracking-tighter italic">Socket: {p.socket}</span>}
+                        {p.ramType && <span className="text-[9px] bg-white/5 px-2 py-1 rounded-md text-zinc-400 font-bold uppercase tracking-tighter italic">RAM: {p.ramType}</span>}
+                      </td>
                       <td className="p-8"><span className="text-[10px] text-zinc-600 block uppercase font-black mb-1">Profit: +{(p.sellingPrice - p.buyingPrice).toLocaleString()}</span><span className="font-black text-xl italic">LKR {p.sellingPrice?.toLocaleString()}</span></td>
                       <td className="p-8 text-center"><button onClick={() => deleteItem(p.id, "products")} className="text-zinc-800 hover:text-red-500 transition-all transform hover:scale-125"><Trash2 size={22} /></button></td>
                     </tr>
@@ -204,12 +240,11 @@ const Admin = () => {
           </div>
         )}
 
+        {/* Setup tab logic remains same as per your original code */}
         {activeTab === 'setup' && (
           <div className="space-y-16 animate-in fade-in duration-700">
             <h1 className="text-8xl font-black italic tracking-tighter uppercase leading-none text-white/90">Store Setup</h1>
-            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-              {/* CATEGORY SECTION */}
               <div className="space-y-8">
                 <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-6">
                   <h2 className="text-xl font-black italic uppercase tracking-widest text-amber-500">Categories</h2>
@@ -228,7 +263,6 @@ const Admin = () => {
                 </div>
               </div>
 
-              {/* BRAND SECTION */}
               <div className="space-y-8">
                 <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-6">
                   <h2 className="text-xl font-black italic uppercase tracking-widest text-blue-500">Brands</h2>
