@@ -25,7 +25,6 @@ const TiltCard = ({ children, className, id, index }) => {
   return (
     <motion.div
       id={id}
-      // හැමතිස්සෙම පෙනෙන විට Animation එක වැඩ කිරීමට viewport එකේ once: false කළා
       initial={{ opacity: 0, y: 50, scale: 0.9 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 50, scale: 0.9 }}
@@ -52,6 +51,8 @@ export default function Home({ setPage, cart, setCart }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     let streams = [];
+    let mouse = { x: -1000, y: -1000 };
+    let ripples = [];
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -60,56 +61,86 @@ export default function Home({ setPage, cart, setCart }) {
     window.addEventListener("resize", resize);
     resize();
 
-    // --- WATERFALL LIQUID LOGIC ---
+    // --- INTERACTIVE WATERFALL LOGIC ---
     class Stream {
-      constructor(x) {
-        this.reset(x);
+      constructor() {
+        this.init();
       }
 
-      reset(x) {
-        this.x = x || Math.random() * canvas.width;
-        this.y = -Math.random() * 500;
-        this.width = Math.random() * 30 + 20; // උකු බව සඳහා පළල වැඩි කළා
-        this.speed = Math.random() * 2 + 1;
-        this.color = Math.random() > 0.5 ? "#f59e0b" : "#ffffff";
-        this.length = Math.random() * 300 + 200;
+      init() {
+        this.x = Math.random() * canvas.width;
+        this.y = -Math.random() * canvas.height; // පිටුව load වෙද්දී උඩ සිට වැටීම
+        this.width = Math.random() * 25 + 15;
+        this.speed = Math.random() * 3 + 2;
+        this.color = Math.random() > 0.6 ? "#f59e0b" : "#ffffff";
+        this.length = Math.random() * 200 + 150;
+        this.vx = 0;
       }
 
       update() {
         this.y += this.speed;
-        
-        // Product Cards සමඟ ගැටීම (Collision)
-        const cards = document.querySelectorAll('.product-card');
-        cards.forEach(card => {
-          const rect = card.getBoundingClientRect();
-          if (this.x + this.width/2 > rect.left && this.x - this.width/2 < rect.right &&
-              this.y > rect.top && this.y < rect.top + 10) {
-            this.y -= this.speed * 0.8; // කාඩ් එක උඩදී වේගය අඩු වීම (Dripping effect)
-            this.width += 0.1;
-          }
-        });
+
+        // Mouse Reaction (දියරය මවුස් එකෙන් ඈත් වීම)
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          this.vx += dx * 0.01; // මවුස් එක ලඟදී දියරය විසි වීම
+        }
+        this.x += this.vx;
+        this.vx *= 0.9; // Friction
 
         if (this.y > canvas.height + this.length) {
-          this.reset();
+          this.init();
+          this.y = -this.length;
         }
       }
 
       draw() {
         ctx.beginPath();
         ctx.fillStyle = this.color;
-        // දියඇල්ලක් වගේ දිගටි හැඩයක් (Rounded Capsule)
         ctx.roundRect(this.x, this.y, this.width, this.length, 20);
         ctx.fill();
       }
     }
 
-    // දියඇලි ධාරා ප්‍රමාණය
-    for (let i = 0; i < 20; i++) {
-      streams.push(new Stream());
+    // Ripple Logic (Click Animation)
+    class Ripple {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.r = 0;
+        this.opacity = 0.6;
+      }
+      update() {
+        this.r += 8;
+        this.opacity -= 0.01;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(245, 158, 11, ${this.opacity})`;
+        ctx.lineWidth = 4;
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
+    for (let i = 0; i < 25; i++) streams.push(new Stream());
+
+    const handleMouseMove = (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+
+    const handleClick = (e) => {
+      ripples.push(new Ripple(e.clientX, e.clientY));
+      if (ripples.length > 5) ripples.shift();
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousedown", handleClick);
+
     const animate = () => {
-      // මෙතන contrast එකත් එක්ක blur එක පාවිච්චි කළාම waterfall එක සිනිඳු වෙනවා
       ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
@@ -117,6 +148,13 @@ export default function Home({ setPage, cart, setCart }) {
         s.update();
         s.draw();
       });
+
+      ripples.forEach((r, i) => {
+        r.update();
+        r.draw();
+        if (r.opacity <= 0) ripples.splice(i, 1);
+      });
+
       requestAnimationFrame(animate);
     };
     animate();
@@ -132,16 +170,20 @@ export default function Home({ setPage, cart, setCart }) {
     };
     fetchFeatured();
 
-    return () => window.removeEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousedown", handleClick);
+    };
   }, []);
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden select-none">
       
-      {/* --- WATERFALL METABALL CANVAS --- */}
+      {/* --- INTERACTIVE WATERFALL CANVAS --- */}
       <canvas 
         ref={canvasRef} 
-        className="fixed inset-0 z-0 pointer-events-none opacity-30"
+        className="fixed inset-0 z-0 pointer-events-none opacity-40"
         style={{ filter: "blur(15px) contrast(30)" }}
       />
 
@@ -180,7 +222,7 @@ export default function Home({ setPage, cart, setCart }) {
           </div>
         </div>
 
-        {/* FEATURED PRODUCTS (REPEATING ANIMATION) */}
+        {/* FEATURED PRODUCTS */}
         <div className="max-w-7xl mx-auto px-6 py-24 relative">
           <h2 className="text-4xl font-black mb-12 italic uppercase border-l-8 border-amber-500 pl-4">FEATURED HARDWARE</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
