@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Navbar from "./components/Navbar"; // Import එක තහවුරු කරන්න
+import Navbar from "./components/Navbar"; 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Builder from "./pages/Builder";
@@ -10,23 +10,37 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [cart, setCart] = useState([]);
 
-  // URL එක `/admin` ද කියලා පරීක්ෂා කරලා page එක මාරු කිරීම
+  // URL පරීක්ෂාව
   useEffect(() => {
     if (window.location.pathname === "/admin") {
       setPage("admin");
     }
   }, []);
 
+  // Cart එකෙන් අයිතමයක් අයින් කිරීමේ function එක
+  const removeFromCart = (indexToRemove) => {
+    // Index එක පාවිච්චි කිරීම වඩාත් නිවැරදියි (එකම බඩුව දෙපාරක් තිබුණොත් එකක් විතරක් අයින් කරන්න)
+    const updatedCart = cart.filter((_, index) => index !== indexToRemove);
+    setCart(updatedCart);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Admin පේජ් එකේදී Navbar එක පෙන්නන්න ඕනේ නැත්නම් මේ check එක තියන්න */}
       {page !== "admin" && <Navbar setPage={setPage} cartCount={cart.length} />}
       
       <main>
-        {page === "home" && <Home setPage={setPage} />}
+        {page === "home" && (
+          <Home setPage={setPage} cart={cart} setCart={setCart} />
+        )}
+        
         {page === "shop" && <Shop cart={cart} setCart={setCart} />}
         {page === "builder" && <Builder cart={cart} setCart={setCart} />}
-        {page === "checkout" && <Checkout cart={cart} />}
+        
+        {/* Checkout එකට removeFromCart යැවීම */}
+        {page === "checkout" && (
+          <Checkout cart={cart} removeFromCart={removeFromCart} setPage={setPage} />
+        )}
+        
         {page === "admin" && <Admin />}
       </main>
     </div>
