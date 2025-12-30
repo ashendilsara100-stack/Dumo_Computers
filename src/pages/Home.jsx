@@ -4,6 +4,10 @@ import {
   Share2, Facebook, Instagram, MessageCircle, X, Users, Award, TrendingUp
 } from "lucide-react";
 
+// Firebase Imports
+import { db } from "../firebase/config"; 
+import { collection, query, orderBy, onSnapshot, limit } from "firebase/firestore";
+
 const TypeWriter = ({ text, delay = 100 }) => {
   const [currentText, setCurrentText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,16 +27,30 @@ const TypeWriter = ({ text, delay = 100 }) => {
 };
 
 export default function Home({ setPage, cart, setCart }) {
-  const [products] = useState([
-    { id: 1, name: "AMD RYZEN 9 7950X", image: "https://via.placeholder.com/300", sellingPrice: 185000 },
-    { id: 2, name: "RTX 4080 SUPER", image: "https://via.placeholder.com/300", sellingPrice: 425000 },
-    { id: 3, name: "CORSAIR 64GB DDR5", image: "https://via.placeholder.com/300", sellingPrice: 125000 },
-    { id: 4, name: "SAMSUNG 990 PRO 2TB", image: "https://via.placeholder.com/300", sellingPrice: 85000 }
-  ]);
+  // Admin එකෙන් එන Products ලබා ගැනීමට State එක
+  const [products, setProducts] = useState([]);
   const [isSocialOpen, setIsSocialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const canvasRef = useRef(null);
+
+  // --- Firebase Real-time Data Fetching Logic ---
+  useEffect(() => {
+    // Firestore එකෙන් අලුත්ම products 4ක් ලබා ගැනීම
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(4));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const productsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setProducts(productsData);
+    }, (error) => {
+      console.error("Firebase Error:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -266,10 +284,10 @@ export default function Home({ setPage, cart, setCart }) {
         <section className="max-w-7xl mx-auto px-6 py-24">
           <h2 className="text-3xl md:text-5xl font-black mb-12 italic uppercase border-l-8 border-amber-500 pl-6 tracking-tight">FEATURED HARDWARE</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {products.map((p, i) => (
+            {products.length > 0 ? products.map((p, i) => (
               <div key={p.id} className="bg-zinc-900/40 border border-white/5 p-6 rounded-[35px] backdrop-blur-xl hover:border-amber-500/50 transition-all shadow-2xl overflow-hidden group cursor-pointer hover:scale-105 duration-300">
                 <div className="aspect-square bg-black/40 rounded-2xl mb-6 overflow-hidden border border-white/5 flex items-center justify-center">
-                  <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={p.name} />
+                  <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" alt={p.name} />
                 </div>
                 <h3 className="font-bold text-xl mb-2 truncate uppercase italic group-hover:text-amber-500 transition-colors">{p.name}</h3>
                 <p className="text-2xl font-black mb-6 text-amber-500 italic">LKR {p.sellingPrice?.toLocaleString()}</p>
@@ -278,7 +296,10 @@ export default function Home({ setPage, cart, setCart }) {
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-600 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                 </button>
               </div>
-            ))}
+            )) : (
+              // Products Load වෙනකම් පෙන්වන empty placeholders
+              [1,2,3,4].map(n => <div key={n} className="h-[400px] bg-zinc-900/20 rounded-[35px] animate-pulse border border-white/5"></div>)
+            )}
           </div>
         </section>
 
