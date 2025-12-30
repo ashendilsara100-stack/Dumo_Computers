@@ -80,7 +80,7 @@ export default function Home({ setPage, cart, setCart }) {
               >
                 {/* මෙතනට ඔයාගේ Transparent PC Image එකක් දාන්න */}
                 <img 
-                  src="https://i.ibb.co/4ncnrkhC/download-10.jpg" 
+                  src="https://i.ibb.co/XrC6Y9fy/download-10-removebg-preview.png" 
                   alt="High End PC" 
                   className="w-[500px] h-auto drop-shadow-[0_35px_35px_rgba(245,158,11,0.4)]"
                 />
