@@ -1,172 +1,276 @@
-import { useState, useEffect } from "react";
-import { db, storage } from "../firebase/config"; 
-import { collection, addDoc, getDocs, deleteDoc, doc, onSnapshot } from "firebase/firestore";
-import { PlusCircle, Trash2, Package, Tag, Layers, Image as ImageIcon, Briefcase } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { 
+  LayoutDashboard, Package, Lock, Trash2, LogOut, RefreshCw, 
+  Layers, PlusCircle, CheckCircle2, TrendingUp, DollarSign, ShoppingCart
+} from 'lucide-react';
+import { db } from "../firebase/config"; 
+import { 
+  collection, addDoc, getDocs, deleteDoc, doc, 
+  serverTimestamp, query, orderBy, onSnapshot
+} from "firebase/firestore";
 
-export default function Admin() {
+const Admin = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('inventory'); 
+  
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [newCat, setNewCat] = useState("");
+  const [categories, setCategories] = useState([]); // Dynamic Categories
+  const [newCatName, setNewCatName] = useState(""); // For adding category
   const [loading, setLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  // අලුත් Product එකක් සඳහා State එක
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    brand: "", // Intel, AMD, Nvidia, etc.
-    costPrice: "",
-    sellingPrice: "",
-    stock: "",
-    image: ""
-  });
+  // Form Fields
+  const [name, setName] = useState("");
+  const [brand, setBrand] = useState(""); // Brand එකතු කළා
+  const [buyingPrice, setBuyingPrice] = useState("");
+  const [sellingPrice, setSellingPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [category, setCategory] = useState("");
+  const [image, setImage] = useState("");
 
-  // 1. Fetch Products & Categories (Real-time)
-  useEffect(() => {
-    const unsubProducts = onSnapshot(collection(db, "products"), (snap) => {
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+  const ADMIN_PASSWORD = "dumo_admin_2025"; 
 
-    const unsubCats = onSnapshot(collection(db, "categories"), (snap) => {
-      setCategories(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
-    return () => { unsubProducts(); unsubCats(); };
-  }, []);
-
-  // 2. අලුත් Category එකක් ඇඩ් කිරීම
-  const handleAddCategory = async () => {
-    if (!newCat) return;
-    await addDoc(collection(db, "categories"), { name: newCat });
-    setNewCat("");
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
 
-  // 3. Product එකක් ඇඩ් කිරීම
+  // Real-time Fetch Products & Categories
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Products Subscription
+      const qProducts = query(collection(db, "products"), orderBy("createdAt", "desc"));
+      const unsubProducts = onSnapshot(qProducts, (snap) => {
+        setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+
+      // Categories Subscription
+      const qCats = query(collection(db, "categories"), orderBy("name", "asc"));
+      const unsubCats = onSnapshot(qCats, (snap) => {
+        const catList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setCategories(catList);
+        if (catList.length > 0 && !category) setCategory(catList[0].name);
+      });
+
+      return () => { unsubProducts(); unsubCats(); };
+    }
+  }, [isAuthenticated]);
+
+  // CATEGORY HANDLING
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) return;
+    try {
+      await addDoc(collection(db, "categories"), { name: newCatName.trim() });
+      setNewCatName("");
+      showToast("Category added!");
+    } catch (e) { showToast("Error adding category", "error"); }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (window.confirm("Delete this category?")) {
+      await deleteDoc(doc(db, "categories", id));
+      showToast("Category deleted");
+    }
+  };
+
+  // PRODUCT HANDLING
   const handleAddProduct = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    if (e) e.preventDefault();
+    if (!name || !buyingPrice || !sellingPrice || !stock || !category) {
+      showToast("Please fill all required fields", "error");
+      return;
+    }
+
+    setFormLoading(true);
     try {
       await addDoc(collection(db, "products"), {
-        ...formData,
-        costPrice: Number(formData.costPrice),
-        sellingPrice: Number(formData.sellingPrice),
-        stock: Number(formData.stock),
-        createdAt: new Date()
+        name,
+        brand: brand.trim(), // Brand එක save කිරීම
+        buyingPrice: Number(buyingPrice),
+        sellingPrice: Number(sellingPrice),
+        stock: Number(stock),
+        category,
+        image: image || "https://via.placeholder.com/150",
+        createdAt: serverTimestamp()
       });
-      setFormData({ name: "", category: "", brand: "", costPrice: "", sellingPrice: "", stock: "", image: "" });
-      alert("Product Added Successfully!");
-    } catch (err) {
-      console.error(err);
+      
+      setName(""); setBrand(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); setImage("");
+      showToast("Product published successfully!", "success");
+    } catch (error) {
+      showToast("Error saving data", "error");
+    } finally {
+      setFormLoading(false);
     }
-    setLoading(false);
   };
 
-  // 4. අයිතමයක් මකා දැමීම
-  const deleteItem = async (id, type) => {
-    if (window.confirm(`Are you sure you want to delete this ${type}?`)) {
-      await deleteDoc(doc(db, type === 'product' ? "products" : "categories", id));
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this product?")) {
+      try {
+        await deleteDoc(doc(db, "products", id));
+        showToast("Product deleted", "success");
+      } catch (error) { showToast("Error deleting", "error"); }
     }
   };
+
+  const handleLogin = (e) => {
+    if (e) e.preventDefault();
+    if (password === ADMIN_PASSWORD) setIsAuthenticated(true);
+    else showToast("Invalid Password", "error");
+  };
+
+  // Stats Calculations
+  const totalInvestment = products.reduce((sum, p) => sum + (Number(p.buyingPrice || 0) * Number(p.stock || 0)), 0);
+  const totalRevenue = products.reduce((sum, p) => sum + (Number(p.sellingPrice || 0) * Number(p.stock || 0)), 0);
+  const totalProfit = totalRevenue - totalInvestment;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-white italic font-sans">
+        <div className="bg-zinc-900 border border-white/10 p-10 rounded-[30px] w-full max-w-md text-center">
+          <Lock size={40} className="mx-auto mb-6 text-amber-500" />
+          <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">DUMO ADMIN</h2>
+          <input 
+            type="password" 
+            placeholder="Enter Password"
+            className="w-full bg-black border border-white/10 p-4 rounded-xl mb-4 text-center font-bold outline-none focus:border-amber-500"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button onClick={handleLogin} className="w-full bg-white text-black py-4 rounded-xl font-black uppercase italic hover:bg-amber-500 transition-all">Unlock</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 pt-24">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* LEFT COLUMN: Forms */}
-        <div className="lg:col-span-1 space-y-8">
-          
-          {/* A. ADD CATEGORY FORM */}
-          <div className="bg-zinc-900/50 p-8 rounded-[40px] border border-white/5">
-            <h2 className="text-xl font-black mb-6 flex items-center gap-2 italic uppercase">
-              <Layers className="text-amber-500" /> Manage Categories
-            </h2>
-            <div className="flex gap-2">
-              <input 
-                type="text" placeholder="New Category Name" 
-                value={newCat} onChange={(e) => setNewCat(e.target.value)}
-                className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500 font-bold"
-              />
-              <button onClick={handleAddCategory} className="bg-white text-black p-3 rounded-xl hover:bg-amber-500 transition-all">
-                <PlusCircle />
-              </button>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {categories.map(cat => (
-                <span key={cat.id} className="bg-white/5 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-white/5">
-                  {cat.name} <Trash2 size={14} className="text-red-500 cursor-pointer" onClick={() => deleteItem(cat.id, 'category')} />
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* B. ADD PRODUCT FORM */}
-          <div className="bg-zinc-900/50 p-8 rounded-[40px] border border-white/5">
-            <h2 className="text-xl font-black mb-6 flex items-center gap-2 italic uppercase">
-              <Package className="text-amber-500" /> Add New Product
-            </h2>
-            <form onSubmit={handleAddProduct} className="space-y-4">
-              <input type="text" placeholder="Product Name" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500" />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500 uppercase font-bold text-xs">
-                  <option value="">Category</option>
-                  {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
-                </select>
-                <input type="text" placeholder="Brand (Intel/AMD)" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} className="bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <input type="number" placeholder="Cost Price" required value={formData.costPrice} onChange={e => setFormData({...formData, costPrice: e.target.value})} className="bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500" />
-                <input type="number" placeholder="Selling Price" required value={formData.sellingPrice} onChange={e => setFormData({...formData, sellingPrice: e.target.value})} className="bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500" />
-              </div>
-
-              <input type="number" placeholder="Stock Quantity" required value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500" />
-              <input type="text" placeholder="Image URL (Direct link)" required value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-amber-500" />
-              
-              <button disabled={loading} className="w-full bg-amber-500 text-black py-4 rounded-xl font-black uppercase italic hover:bg-white transition-all">
-                {loading ? "Uploading..." : "Publish Product"}
-              </button>
-            </form>
-          </div>
+    <div className="min-h-screen bg-black text-white flex font-sans">
+      
+      {/* TOAST NOTIFICATION */}
+      {toast.show && (
+        <div className={`fixed top-5 right-5 z-[100] px-6 py-3 rounded-xl font-bold border animate-bounce ${toast.type === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 'bg-red-500/10 border-red-500 text-red-500'}`}>
+          {toast.message}
         </div>
+      )}
 
-        {/* RIGHT COLUMN: Inventory List */}
-        <div className="lg:col-span-2">
-          <div className="bg-zinc-900/50 rounded-[40px] border border-white/5 overflow-hidden">
-            <div className="p-8 border-b border-white/5 flex justify-between items-center">
-              <h2 className="text-xl font-black italic uppercase">Inventory List ({products.length})</h2>
-              <div className="flex gap-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                <span>Value: LKR {products.reduce((acc, p) => acc + (p.sellingPrice * p.stock), 0).toLocaleString()}</span>
+      {/* SIDEBAR */}
+      <div className="w-72 border-r border-white/10 p-8 flex flex-col bg-zinc-950 sticky top-0 h-screen">
+        <h2 className="text-3xl font-black italic text-amber-500 mb-12">DUMO</h2>
+        <nav className="flex-1 space-y-3">
+          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 p-4 rounded-2xl font-bold transition-all uppercase italic text-xs ${activeTab === 'dashboard' ? 'bg-white text-black' : 'text-zinc-500 hover:bg-white/5'}`}>
+            <LayoutDashboard size={18} /> Dashboard
+          </button>
+          <button onClick={() => setActiveTab('inventory')} className={`w-full flex items-center gap-4 p-4 rounded-2xl font-bold transition-all uppercase italic text-xs ${activeTab === 'inventory' ? 'bg-white text-black' : 'text-zinc-500 hover:bg-white/5'}`}>
+            <Package size={18} /> Inventory
+          </button>
+          <button onClick={() => setActiveTab('categories')} className={`w-full flex items-center gap-4 p-4 rounded-2xl font-bold transition-all uppercase italic text-xs ${activeTab === 'categories' ? 'bg-white text-black' : 'text-zinc-500 hover:bg-white/5'}`}>
+            <Layers size={18} /> Categories
+          </button>
+        </nav>
+        <button onClick={() => setIsAuthenticated(false)} className="text-red-500 font-bold flex items-center gap-2 p-4 hover:bg-red-500/5 rounded-xl uppercase italic text-xs">
+          <LogOut size={18} /> Logout
+        </button>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div className="flex-1 p-12 overflow-y-auto">
+        {activeTab === 'dashboard' && (
+          <div className="space-y-10 animate-in fade-in">
+            <h1 className="text-7xl font-black italic tracking-tighter uppercase">Overview</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-[35px]">
+                <p className="text-zinc-500 font-bold text-[10px] uppercase mb-1">Total Investment</p>
+                <p className="text-4xl font-black italic">LKR {totalInvestment.toLocaleString()}</p>
+              </div>
+              <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-[35px]">
+                <p className="text-amber-500 font-bold text-[10px] uppercase mb-1">Stock Value (Sell)</p>
+                <p className="text-4xl font-black italic text-white">LKR {totalRevenue.toLocaleString()}</p>
+              </div>
+              <div className="bg-zinc-900/50 border border-green-500/20 p-8 rounded-[35px]">
+                <p className="text-green-500 font-bold text-[10px] uppercase mb-1">Potential Profit</p>
+                <p className="text-4xl font-black italic text-green-500">LKR {totalProfit.toLocaleString()}</p>
               </div>
             </div>
-            <div className="overflow-x-auto">
+          </div>
+        )}
+
+        {activeTab === 'inventory' && (
+          <div className="space-y-10 animate-in slide-in-from-bottom-4">
+            <h1 className="text-7xl font-black italic tracking-tighter uppercase">Inventory</h1>
+
+            {/* PRODUCT FORM */}
+            <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-2">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Product Name</label>
+                  <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-xl outline-none focus:border-amber-500 font-bold uppercase italic" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Category</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-xl outline-none font-bold uppercase italic">
+                    <option value="" disabled>Select Category</option>
+                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Brand (Intel/AMD)</label>
+                  <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="e.g. Intel" className="w-full bg-black border border-white/10 p-4 rounded-xl outline-none focus:border-amber-500 font-bold uppercase italic" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div>
+                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Stock Qty</label>
+                  <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-xl outline-none focus:border-amber-500 font-bold" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-2 block">Cost Price</label>
+                  <input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-red-500/20 p-4 rounded-xl outline-none focus:border-red-500 font-bold" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-2 block">Selling Price</label>
+                  <input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-green-500/20 p-4 rounded-xl outline-none focus:border-green-500 font-bold" />
+                </div>
+                <button disabled={formLoading} onClick={handleAddProduct} className="bg-white text-black h-[58px] rounded-xl font-black hover:bg-amber-500 transition-all flex items-center justify-center gap-2 uppercase italic">
+                  {formLoading ? <RefreshCw className="animate-spin" /> : "Publish Item"}
+                </button>
+              </div>
+              <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL (e.g. https://...)" className="w-full bg-black border border-white/10 p-4 rounded-xl outline-none focus:border-amber-500 font-bold text-xs" />
+            </div>
+
+            {/* TABLE */}
+            <div className="bg-zinc-950 border border-white/10 rounded-[30px] overflow-hidden">
               <table className="w-full text-left">
-                <thead className="bg-white/5 text-xs font-black uppercase text-zinc-500">
+                <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase">
                   <tr>
-                    <th className="p-6">Product</th>
+                    <th className="p-6">Product Info</th>
                     <th className="p-6">Brand</th>
-                    <th className="p-6">Stock</th>
-                    <th className="p-6 text-right">Selling Price</th>
+                    <th className="p-6">Prices (Cost/Sell)</th>
+                    <th className="p-6">Profit</th>
                     <th className="p-6 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {products.map(p => (
-                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="p-6">
-                        <div className="flex items-center gap-3">
-                          <img src={p.image} className="w-10 h-10 rounded-lg object-cover" alt="" />
-                          <div>
-                            <p className="font-bold uppercase italic text-sm">{p.name}</p>
-                            <p className="text-[10px] text-zinc-500 uppercase">{p.category}</p>
-                          </div>
+                    <tr key={p.id} className="hover:bg-white/[0.02]">
+                      <td className="p-6 font-black uppercase italic">
+                        <div className="flex items-center gap-4">
+                           <img src={p.image} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                           <div>
+                              {p.name} <span className="block text-[10px] text-zinc-600 not-italic">Category: {p.category} | Stock: {p.stock}</span>
+                           </div>
                         </div>
                       </td>
-                      <td className="p-6"><span className="text-xs font-black italic uppercase text-amber-500">{p.brand || 'N/A'}</span></td>
-                      <td className="p-6 font-bold">{p.stock}</td>
-                      <td className="p-6 text-right font-black italic text-lg">LKR {p.sellingPrice?.toLocaleString()}</td>
+                      <td className="p-6 font-black text-amber-500 italic uppercase text-xs">{p.brand || "—"}</td>
+                      <td className="p-6">
+                        <span className="text-[10px] text-zinc-500 block uppercase">Cost: {p.buyingPrice?.toLocaleString()}</span>
+                        <span className="font-bold text-white">LKR {p.sellingPrice?.toLocaleString()}</span>
+                      </td>
+                      <td className="p-6 font-black text-green-500 italic">+LKR {(p.sellingPrice - p.buyingPrice).toLocaleString()}</td>
                       <td className="p-6 text-center">
-                        <button onClick={() => deleteItem(p.id, 'product')} className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all">
-                          <Trash2 size={16} />
+                        <button onClick={() => handleDelete(p.id)} className="text-zinc-700 hover:text-red-500 transition-colors">
+                          <Trash2 size={18} />
                         </button>
                       </td>
                     </tr>
@@ -175,9 +279,39 @@ export default function Admin() {
               </table>
             </div>
           </div>
-        </div>
+        )}
 
+        {activeTab === 'categories' && (
+          <div className="space-y-10 animate-in fade-in">
+            <h1 className="text-7xl font-black italic tracking-tighter uppercase">Categories</h1>
+            
+            <div className="bg-zinc-900/30 border border-white/10 p-10 rounded-[40px] max-w-xl">
+              <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Add New Category</label>
+              <div className="flex gap-4">
+                <input 
+                  value={newCatName} 
+                  onChange={(e) => setNewCatName(e.target.value)} 
+                  className="flex-1 bg-black border border-white/10 p-4 rounded-xl outline-none focus:border-amber-500 font-bold uppercase italic"
+                />
+                <button onClick={handleAddCategory} className="bg-white text-black px-8 rounded-xl font-black uppercase italic hover:bg-amber-500 transition-all">Add</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
+              {categories.map(cat => (
+                <div key={cat.id} className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 flex justify-between items-center group">
+                  <span className="font-black italic uppercase tracking-wider">{cat.name}</span>
+                  <button onClick={() => handleDeleteCategory(cat.id)} className="text-zinc-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default Admin;
