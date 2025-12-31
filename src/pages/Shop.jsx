@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { db } from "../firebase/config"; 
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { ShoppingCart, Search, Package, ChevronRight, Filter, Coins } from "lucide-center";
+// මෙතන 'lucide-center' වෙනුවට 'lucide-react' විය යුතුයි
+import { ShoppingCart, Search, Package, ChevronRight, Filter, Coins } from "lucide-react";
 
-// Smart Synonym Map
 const categorySynonyms = {
   gpu: ["graphic card", "vga", "graphics card", "video card", "gpu", "nvidia", "rtx", "gtx", "radeon", "display"],
   cpu: ["processor", "chip", "intel", "amd", "ryzen", "core i", "cpu", "processor"],
@@ -27,7 +27,7 @@ export default function ShopPage({ cart, setCart }) {
   const [priceRange, setPriceRange] = useState(1000000); 
   const [sortBy, setSortBy] = useState("default");
 
-  // --- Background Animation Logic ---
+  // --- Background Animation Logic (Fixed) ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -36,6 +36,7 @@ export default function ShopPage({ cart, setCart }) {
     let planets = [];
     let shootingStars = [];
     let mouse = { x: 0, y: 0 };
+    let animationFrameId;
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -117,7 +118,7 @@ export default function ShopPage({ cart, setCart }) {
       stars.forEach(s => { s.update(); s.draw(); });
       planets.forEach(p => { p.update(); p.draw(); });
       shootingStars.forEach(s => { s.update(); s.draw(); });
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
     animate();
 
@@ -129,9 +130,11 @@ export default function ShopPage({ cart, setCart }) {
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
+  // --- Data Fetching ---
   useEffect(() => {
     const unsubProducts = onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snap) => {
       setProducts(snap.docs.map(doc => ({ 
@@ -192,11 +195,14 @@ export default function ShopPage({ cart, setCart }) {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 selection:text-black relative">
-      {/* Background Animation Canvas */}
-      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-100" />
+      {/* Background Animation Canvas - z-[-1] යොදා පිටුපසට කර ඇත */}
+      <canvas 
+        ref={canvasRef} 
+        className="fixed inset-0 pointer-events-none opacity-100" 
+        style={{ zIndex: -1 }} 
+      />
 
       <div className="relative z-10">
-        {/* Breadcrumbs */}
         <div className="max-w-7xl mx-auto px-6 pt-28 flex items-center gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-black">
           <span>DUMO STORE</span> <ChevronRight size={12} className="text-amber-500" /> <span className="text-amber-500 italic">Inventory</span>
         </div>
@@ -205,8 +211,7 @@ export default function ShopPage({ cart, setCart }) {
           {/* SIDEBAR */}
           <aside className="w-full lg:w-80 flex-shrink-0">
             <div className="lg:sticky lg:top-28 space-y-6">
-              {/* PRICE RANGE */}
-              <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl group">
+              <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl group shadow-2xl">
                 <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
                   <Coins size={14} /> Budget Filter
                 </h3>
@@ -221,7 +226,6 @@ export default function ShopPage({ cart, setCart }) {
                 </div>
               </div>
 
-              {/* CATEGORIES */}
               <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl backdrop-blur-md">
                 <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic">Component Type</h3>
                 <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[250px] custom-scrollbar pb-2 lg:pb-0">
@@ -232,8 +236,7 @@ export default function ShopPage({ cart, setCart }) {
                 </div>
               </div>
 
-              {/* BRANDS */}
-              <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-md">
+              <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-md shadow-2xl">
                 <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic">Popular Brands</h3>
                 <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[200px] custom-scrollbar pb-2 lg:pb-0">
                   <button onClick={() => setSelectedBrand("All")} className={`px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedBrand === "All" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-white"}`}>All Brands</button>
