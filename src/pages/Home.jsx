@@ -56,8 +56,8 @@ export default function Home({ setPage, cart, setCart }) {
               </span>
               
               <h1 className="text-5xl md:text-8xl font-black mb-6 tracking-tighter leading-[0.9] uppercase italic">
-                <TypeWriter text="LEVEL UP" delay={80} /><br /> 
-                <span className="text-amber-500 inline-block animate-reveal-left" style={{ animationDelay: '0.5s' }}>YOUR GAME.</span>
+                <TypeWriter text="Build Your" delay={80} /><br /> 
+                <span className="text-amber-500 inline-block animate-reveal-left" style={{ animationDelay: '0.5s' }}>Dream Computer</span>
               </h1>
 
               <p className="text-gray-400 text-lg md:text-xl mb-10 italic max-w-lg animate-fade-in" style={{ animationDelay: '1s', animationFillMode: 'forwards' }}>
