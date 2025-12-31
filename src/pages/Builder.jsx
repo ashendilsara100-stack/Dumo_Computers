@@ -3,7 +3,7 @@ import { db } from "../firebase/config";
 import { collection, onSnapshot } from "firebase/firestore";
 import { 
   Cpu, HardDrive, Zap, Box, Fan, Monitor, ShoppingCart, 
-  CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2 
+  CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2, Facebook, X, Music2, MapPinned 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -15,6 +15,8 @@ const PCBuilder = ({ cart, setCart }) => {
     cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooling: null
   });
   const [totalPrice, setTotalPrice] = useState(0);
+
+  const [isSocialOpen, setIsSocialOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "products"), (snap) => {
@@ -215,6 +217,22 @@ const PCBuilder = ({ cart, setCart }) => {
         .animate-reveal-right { animation: reveal-right 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .fill-mode-both { animation-fill-mode: both; }
       `}</style>
+
+{/* SOCIAL MENU */}
+      <div className="fixed bottom-6 right-6 z-[100]">
+        {isSocialOpen && (
+          <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
+            <a href="https://maps.app.goo.gl/eGEG6g1KRz5un6R87" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
+            <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
+            <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
+            <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
+          </div>
+        )}
+        <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
+          {isSocialOpen ? <X size={26} /> : <Share2 size={26} />}
+        </button>
+      </div>
+
     </div>
   );
 };
