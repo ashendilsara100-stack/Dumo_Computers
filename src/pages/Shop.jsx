@@ -3,6 +3,7 @@ import { db } from "../firebase/config";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { ShoppingCart, Search, Package, ChevronRight, Filter, Coins } from "lucide-react";
 
+// 1. Smart Synonym Map
 const categorySynonyms = {
   gpu: ["graphic card", "vga", "graphics card", "video card", "gpu", "nvidia", "rtx", "gtx", "radeon", "display"],
   cpu: ["processor", "chip", "intel", "amd", "ryzen", "core i", "cpu", "processor"],
@@ -18,7 +19,7 @@ export default function ShopPage({ cart, setCart }) {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
-  const canvasRef = useRef(null); 
+  const canvasRef = useRef(null); // Background එක සඳහා
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -26,7 +27,7 @@ export default function ShopPage({ cart, setCart }) {
   const [priceRange, setPriceRange] = useState(1000000); 
   const [sortBy, setSortBy] = useState("default");
 
-  // --- 1. FULL SPACE BACKGROUND LOGIC (Same as Home) ---
+  // --- BACKGROUND ANIMATION LOGIC (FROM HOME) ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -34,113 +35,150 @@ export default function ShopPage({ cart, setCart }) {
     let stars = [];
     let planets = [];
     let shootingStars = [];
-    let mouse = { x: null, y: null };
+    let particles = [];
+    let mouse = { x: 0, y: 0, realX: -1000, realY: -1000 };
+    let isClicking = false;
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-    
-    const handleMouseMove = (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-    };
-
     window.addEventListener("resize", resize);
-    window.addEventListener("mousemove", handleMouseMove);
     resize();
 
-    class Star {
-      constructor() {
-        this.reset();
-      }
+    class ShootingStar {
+      constructor() { this.reset(); }
       reset() {
         this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 1.5;
-        this.baseX = this.x;
-        this.baseY = this.y;
-        this.density = (Math.random() * 30) + 1;
+        this.y = (Math.random() * canvas.height) / 2;
+        this.length = Math.random() * 80 + 20;
+        this.speed = Math.random() * 10 + 6;
+        this.size = Math.random() * 1 + 0.5;
+        this.opacity = Math.random() * 0.5 + 0.5;
       }
       update() {
-        // Mouse interaction logic
-        let dx = mouse.x - this.x;
-        let dy = mouse.y - this.y;
-        let distance = Math.sqrt(dx*dx + dy*dy);
-        let forceDirectionX = dx / distance;
-        let forceDirectionY = dy / distance;
-        let maxDistance = 100;
-        let force = (maxDistance - distance) / maxDistance;
-        let directionX = forceDirectionX * force * this.density;
-        let directionY = forceDirectionY * force * this.density;
-
-        if (distance < maxDistance) {
-          this.x -= directionX;
-          this.y -= directionY;
-        } else {
-          if (this.x !== this.baseX) {
-            let dx = this.x - this.baseX;
-            this.x -= dx/10;
-          }
-          if (this.y !== this.baseY) {
-            let dy = this.y - this.baseY;
-            this.y -= dy/10;
-          }
+        this.x += this.speed; this.y += this.speed; this.opacity -= 0.01;
+        if (this.opacity <= 0 || this.x > canvas.width || this.y > canvas.height) {
+          if (Math.random() < 0.03) this.reset();
         }
       }
       draw() {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        if (this.opacity > 0) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+          ctx.lineWidth = this.size;
+          ctx.beginPath(); ctx.moveTo(this.x, this.y);
+          ctx.lineTo(this.x - this.length, this.y - this.length);
+          ctx.stroke(); ctx.restore();
+        }
+      }
+    }
+
+    class Particle {
+      constructor(x, y) {
+        this.x = x; this.y = y;
+        this.vx = (Math.random() - 0.5) * 4;
+        this.vy = (Math.random() - 0.5) * 4;
+        this.size = Math.random() * 3 + 1;
+        this.life = 1;
+      }
+      update() { this.x += this.vx; this.y += this.vy; this.life -= 0.02; }
+      draw() {
+        ctx.fillStyle = `rgba(245, 158, 11, ${this.life})`;
+        ctx.fillRect(this.x, this.y, this.size, this.size);
       }
     }
 
     class Planet {
-      constructor() {
+      constructor(size, color, speed, depth) {
+        this.size = size; this.color = color; this.speed = speed; this.depth = depth;
+        this.reset(true);
+      }
+      reset(firstTime) {
         this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.radius = Math.random() * 30 + 10;
-        this.color = `hsla(${Math.random() * 360}, 40%, 30%, 0.4)`;
-        this.speed = Math.random() * 0.2 + 0.05;
+        this.y = firstTime ? Math.random() * canvas.height : -200;
       }
       update() {
         this.y += this.speed;
-        if (this.y - this.radius > canvas.height) this.y = -this.radius;
+        if (this.y > canvas.height + 200) this.reset();
+        this.renderX = this.x + (mouse.x * this.depth);
+        this.renderY = this.y + (mouse.y * this.depth);
       }
       draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.1)";
-        ctx.stroke();
+        ctx.save(); ctx.translate(this.renderX, this.renderY);
+        let grad = ctx.createRadialGradient(-this.size/3, -this.size/3, this.size/10, 0, 0, this.size);
+        grad.addColorStop(0, this.color); grad.addColorStop(1, "black");
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, this.size, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
     }
 
-    // Initialize
-    for (let i = 0; i < 150; i++) stars.push(new Star());
-    for (let i = 0; i < 5; i++) planets.push(new Planet());
+    class Star {
+      constructor() { 
+        this.init(); 
+        this.twinkle = Math.random() * Math.PI * 2;
+        this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+      }
+      init() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2;
+        this.vy = Math.random() * 0.3 + 0.1;
+      }
+      update() {
+        this.twinkle += this.twinkleSpeed;
+        if (isClicking) {
+          const dx = mouse.realX - this.x; const dy = mouse.realY - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          this.x += dx / (dist * 0.1); this.y += dy / (dist * 0.1);
+          if (dist < 5) this.init();
+        } else {
+          this.y += this.vy; if (this.y > canvas.height) this.y = 0;
+        }
+      }
+      draw() { 
+        const opacity = 0.8 + Math.sin(this.twinkle) * 0.3;
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`; 
+        ctx.fillRect(this.x, this.y, this.size, this.size); 
+      }
+    }
+
+    planets = [new Planet(60, "#f59e0b", 0.1, 5), new Planet(110, "#78350f", 0.05, 3)];
+    for (let i = 0; i < 200; i++) stars.push(new Star());
+    for (let i = 0; i < 5; i++) shootingStars.push(new ShootingStar());
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      planets.forEach(p => { p.update(); p.draw(); });
+      ctx.fillStyle = "#020202"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       stars.forEach(s => { s.update(); s.draw(); });
-      
+      planets.forEach(p => { p.update(); p.draw(); });
+      shootingStars.forEach(s => { s.update(); s.draw(); });
+      particles = particles.filter(p => { p.update(); p.draw(); return p.life > 0; });
       requestAnimationFrame(animate);
     };
     animate();
 
+    const handleMouseMove = (e) => {
+      mouse.realX = e.clientX; mouse.realY = e.clientY;
+      mouse.x = (e.clientX - canvas.width/2) / 80;
+      mouse.y = (e.clientY - canvas.height/2) / 80;
+    };
+    const handleClick = (e) => {
+      for (let i = 0; i < 20; i++) particles.push(new Particle(e.clientX, e.clientY));
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousedown", () => isClicking = true);
+    window.addEventListener("mouseup", () => isClicking = false);
+    window.addEventListener("click", handleClick);
+
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("click", handleClick);
     };
   }, []);
 
-  // --- 2. DATA FETCHING & FILTERING ---
+  // --- DATA FETCHING ---
   useEffect(() => {
     const unsubProducts = onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snap) => {
       setProducts(snap.docs.map(doc => ({ 
@@ -170,9 +208,8 @@ export default function ShopPage({ cart, setCart }) {
     return () => { unsubProducts(); unsubCats(); unsubBrands(); };
   }, []);
 
-  // --- 3. FIX: ADD TO CART FUNCTION ---
   const addToCart = (p) => {
-    setCart((prevCart) => [...prevCart, p]); // Use functional update for safety
+    setCart([...cart, p]);
     const toast = document.createElement('div');
     toast.className = 'fixed bottom-10 right-10 bg-amber-500 text-black px-8 py-4 rounded-2xl shadow-2xl z-[100] font-black flex items-center gap-3 italic uppercase text-sm border-2 border-black animate-bounce';
     toast.innerHTML = `🚀 ${p.name} ADDED TO CART!`;
@@ -180,7 +217,7 @@ export default function ShopPage({ cart, setCart }) {
     setTimeout(() => toast.remove(), 2000);
   };
 
-  // --- 4. OPTIMIZED SEARCH & FILTER LOGIC ---
+  // --- FILTER & SORT LOGIC ---
   let filteredProducts = products.filter(p => {
     const searchLower = searchTerm.toLowerCase().trim();
     const productName = (p.name || "").toLowerCase();
@@ -199,7 +236,6 @@ export default function ShopPage({ cart, setCart }) {
     return categoryMatch && brandMatch && priceMatch && (nameMatch || isSynonymMatch || searchTerm === "");
   });
 
-  // Apply Sorting
   if (sortBy === "price-low") filteredProducts.sort((a, b) => a.price - b.price);
   if (sortBy === "price-high") filteredProducts.sort((a, b) => b.price - a.price);
   if (sortBy === "name") filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
@@ -207,7 +243,8 @@ export default function ShopPage({ cart, setCart }) {
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 selection:text-black relative overflow-x-hidden">
       
-      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />
+      {/* BACKGROUND CANVAS */}
+      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-100" />
 
       <div className="relative z-10">
         <div className="max-w-7xl mx-auto px-6 pt-28 flex items-center gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-black">
@@ -306,8 +343,7 @@ export default function ShopPage({ cart, setCart }) {
                 </div>
               ))}
             </div>
-            
-            {/* Empty State */}
+
             {!loading && filteredProducts.length === 0 && (
               <div className="text-center py-32 bg-zinc-900/10 rounded-[50px] border border-dashed border-white/10 mt-10">
                 <Package className="w-16 h-16 mx-auto mb-6 text-zinc-800" />
