@@ -3,6 +3,10 @@ import { db } from "../firebase/config";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { ShoppingCart, Search, Package, ChevronRight, Coins, LayoutGrid } from "lucide-react";
 import SpaceBackground from "../components/SpaceBackground";
+import { 
+  ShoppingCart, Package, ArrowRight, ShieldCheck, Truck, Zap, 
+  Share2, Facebook, MessageCircle, X, Music2, MapPinned
+} from "lucide-react";
 
 const categorySynonyms = {
   gpu: ["graphic card", "vga", "graphics card", "video card", "gpu", "nvidia", "rtx", "gtx", "radeon", "display"],
