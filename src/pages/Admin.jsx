@@ -8,7 +8,7 @@ import {
   collection, addDoc, deleteDoc, doc, 
   serverTimestamp, query, orderBy, onSnapshot
 } from "firebase/firestore";
-import SpaceBackground from './components/SpaceBackground'; // ඔබ පැවසූ file එක
+import SpaceBackground from "../components/SpaceBackground"; // ඔබ පැවසූ file එක
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
