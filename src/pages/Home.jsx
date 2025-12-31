@@ -101,7 +101,7 @@ export default function Home({ setPage, cart, setCart }) {
         this.y += this.speed;
         this.opacity -= 0.01;
         if (this.opacity <= 0 || this.x > canvas.width || this.y > canvas.height) {
-          if (Math.random() < 0.01) this.reset();
+          if (Math.random() < 0.03) this.reset();
         }
       }
       draw() {
@@ -190,7 +190,7 @@ export default function Home({ setPage, cart, setCart }) {
 
     planets = [new Planet(60, "#f59e0b", 0.1, 5), new Planet(110, "#78350f", 0.05, 3)];
     for (let i = 0; i < 300; i++) stars.push(new Star());
-    for (let i = 0; i < 8; i++) shootingStars.push(new ShootingStar());
+    for (let i = 0; i < 5; i++) shootingStars.push(new ShootingStar());
 
     const animate = () => {
       ctx.fillStyle = "#020202"; ctx.fillRect(0, 0, canvas.width, canvas.height);
