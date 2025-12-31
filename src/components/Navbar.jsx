@@ -17,8 +17,8 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
 
   return (
     <>
-      {/* Desktop Navbar - Made Transparent & Absolute */}
-      <nav className="bg-transparent text-white absolute top-0 left-0 right-0 z-50">
+      {/* Desktop Navbar - Sticky & Transparent with Border */}
+      <nav className="bg-black/20 backdrop-blur-md text-white border-b-2 border-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex justify-between items-center">
             {/* Logo */}
@@ -45,7 +45,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
                     className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black transition-all border-2 ${
                       isActive
                         ? "bg-white text-black border-white"
-                        : "bg-black/40 backdrop-blur-md text-white border-white/20 hover:bg-white hover:text-black hover:border-amber-500 hover:scale-105"
+                        : "bg-black/40 text-white border-white hover:bg-white hover:text-black hover:border-amber-500 hover:scale-105"
                     }`}
                   >
                     <Icon size={18} />
@@ -76,7 +76,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 bg-black/40 backdrop-blur-md hover:bg-white hover:text-black transition-all rounded-lg border-2 border-white/20"
+              className="md:hidden p-2 hover:bg-white hover:text-black transition-all rounded-lg border-2 border-white"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -84,7 +84,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Fixed and Blurred */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-[60] bg-black/90 backdrop-blur-xl">
           <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
@@ -99,7 +99,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
                   className={`w-full max-w-sm flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-xl transition-all border-2 ${
                     isActive
                       ? "bg-white text-black border-white scale-105"
-                      : "bg-black/50 text-white border-white/30 hover:bg-white hover:text-black hover:border-amber-500"
+                      : "bg-black text-white border-white hover:bg-white hover:text-black hover:border-amber-500"
                   }`}
                 >
                   <Icon size={24} />
