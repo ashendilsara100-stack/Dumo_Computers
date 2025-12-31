@@ -10,22 +10,39 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [cart, setCart] = useState([]);
 
-  // URL පරීක්ෂාව
+  // URL පරීක්ෂාව සහ Security features (Right click & Selection prevention)
   useEffect(() => {
+    // Admin Page එකට යන එක බලන්න
     if (window.location.pathname === "/admin") {
       setPage("admin");
     }
+
+    // 1. Right Click නැවැත්වීම
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu);
+
+    // Cleanup function: component එක අයින් වන විට event listener එක අයින් කරයි
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu);
+    };
   }, []);
 
   // Cart එකෙන් අයිතමයක් අයින් කිරීමේ function එක
   const removeFromCart = (indexToRemove) => {
-    // Index එක පාවිච්චි කිරීම වඩාත් නිවැරදියි (එකම බඩුව දෙපාරක් තිබුණොත් එකක් විතරක් අයින් කරන්න)
     const updatedCart = cart.filter((_, index) => index !== indexToRemove);
     setCart(updatedCart);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    // 2. CSS හරහා Text Selection වැළැක්වීම (select-none class එකෙන්)
+    <div className="min-h-screen bg-black text-white select-none">
+      {/* සටහන: Tailwind පාවිච්චි කරන්නේ නම් 'select-none' class එකෙන් 
+        මුළු පේජ් එකේම අකුරු සිලෙක්ට් කිරීම වළක්වයි. 
+      */}
+      
       {page !== "admin" && <Navbar setPage={setPage} cartCount={cart.length} />}
       
       <main>
@@ -36,13 +53,20 @@ export default function App() {
         {page === "shop" && <Shop cart={cart} setCart={setCart} />}
         {page === "builder" && <Builder cart={cart} setCart={setCart} />}
         
-        {/* Checkout එකට removeFromCart යැවීම */}
         {page === "checkout" && (
           <Checkout cart={cart} removeFromCart={removeFromCart} setPage={setPage} />
         )}
         
         {page === "admin" && <Admin />}
       </main>
+
+      {/* Input fields වලට පමණක් අකුරු ටයිප් කිරීමට ඉඩ ලබා දීම සඳහා Global CSS එකක් */}
+      <style jsx global>{`
+        input, textarea {
+          user-select: text !important;
+          -webkit-user-select: text !important;
+        }
+      `}</style>
     </div>
   );
 }
