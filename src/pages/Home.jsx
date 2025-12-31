@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { 
   ShoppingCart, Package, ArrowRight, ShieldCheck, Truck, Zap, 
-  Share2, Facebook, MessageCircle, X, Music2
+  Share2, Facebook, MessageCircle, X, Music2, MapPinned
 } from "lucide-react";
 
 // Firebase Imports
@@ -137,6 +137,7 @@ export default function Home({ setPage, cart, setCart }) {
       <div className="fixed bottom-6 right-6 z-[100]">
         {isSocialOpen && (
           <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
+            <a href="https://maps.app.goo.gl/eGEG6g1KRz5un6R87" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
             <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
             <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
             <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
