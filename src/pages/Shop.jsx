@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { db } from "../firebase/config"; 
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { ShoppingCart, Search, Package, ChevronRight, Filter, Coins } from "lucide-react";
+import { ShoppingCart, Search, Package, ChevronRight, Filter, Coins, LayoutGrid } from "lucide-react";
 
 const categorySynonyms = {
   gpu: ["graphic card", "vga", "graphics card", "video card", "gpu", "nvidia", "rtx", "gtx", "radeon", "display"],
@@ -26,7 +26,7 @@ export default function ShopPage({ cart, setCart }) {
   const [priceRange, setPriceRange] = useState(1000000); 
   const [sortBy, setSortBy] = useState("default");
 
-  // --- 1. PRODUCT FILTER LOGIC (High Performance) ---
+  // --- 1. PRODUCT FILTER LOGIC ---
   const filteredProducts = useMemo(() => {
     let result = products.filter(p => {
       const searchLower = searchTerm.toLowerCase().trim();
@@ -53,7 +53,7 @@ export default function ShopPage({ cart, setCart }) {
     return result;
   }, [products, searchTerm, selectedCategory, selectedBrand, priceRange, sortBy]);
 
-  // --- 2. THE ULTIMATE HOME-STYLE BACKGROUND ANIMATION ---
+  // --- 2. THE HOME-STYLE BACKGROUND ANIMATION ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -246,33 +246,46 @@ export default function ShopPage({ cart, setCart }) {
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex flex-col lg:flex-row gap-8 md:gap-12 items-start">
           
-          {/* SIDEBAR - Sticky */}
-          <aside className="w-full lg:w-80 lg:sticky lg:top-24 z-20">
-            <div className="space-y-6">
-              <div className="bg-zinc-900/60 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl shadow-2xl">
-                <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
-                  <Coins size={14} /> Budget Filter
-                </h3>
-                <input 
-                  type="range" min="0" max="1000000" step="5000"
-                  value={priceRange} onChange={(e) => setPriceRange(e.target.value)}
-                  className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                />
-                <div className="flex justify-between mt-4">
-                  <span className="text-white font-black italic text-lg">LKR {Number(priceRange).toLocaleString()}</span>
-                </div>
-              </div>
+          {/* SIDEBAR */}
+          <aside className="w-full lg:w-80 lg:sticky lg:top-24 z-20 space-y-6">
+            
+            {/* BUDGET */}
+            <div className="bg-zinc-900/60 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl shadow-2xl">
+              <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
+                <Coins size={14} /> Budget Filter
+              </h3>
+              <input 
+                type="range" min="0" max="1000000" step="5000"
+                value={priceRange} onChange={(e) => setPriceRange(e.target.value)}
+                className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              />
+              <div className="mt-4 text-white font-black italic text-lg">LKR {Number(priceRange).toLocaleString()}</div>
+            </div>
 
-              <div className="bg-zinc-900/40 backdrop-blur-md p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl max-h-[400px] overflow-y-auto custom-scrollbar">
-                <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic">Component Type</h3>
-                <div className="flex flex-col gap-2">
-                  <button onClick={() => setSelectedCategory("All")} className={`text-left px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedCategory === "All" ? "bg-white text-black translate-x-1" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>All Components</button>
-                  {categories.map(cat => (
-                    <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`text-left px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedCategory === cat.name ? "bg-white text-black translate-x-1" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>{cat.name}</button>
-                  ))}
-                </div>
+            {/* CATEGORIES */}
+            <div className="bg-zinc-900/40 backdrop-blur-md p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl max-h-[350px] overflow-y-auto custom-scrollbar">
+              <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic flex items-center gap-2">
+                <LayoutGrid size={12}/> Categories
+              </h3>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => setSelectedCategory("All")} className={`text-left px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedCategory === "All" ? "bg-white text-black translate-x-1" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>All Components</button>
+                {categories.map(cat => (
+                  <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`text-left px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedCategory === cat.name ? "bg-white text-black translate-x-1" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>{cat.name}</button>
+                ))}
               </div>
             </div>
+
+            {/* BRANDS - RE-ADDED */}
+            <div className="bg-zinc-900/40 backdrop-blur-md p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl max-h-[350px] overflow-y-auto custom-scrollbar">
+              <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic">Popular Brands</h3>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => setSelectedBrand("All")} className={`text-left px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedBrand === "All" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-white"}`}>All Brands</button>
+                {brands.map(brand => (
+                  <button key={brand.id} onClick={() => setSelectedBrand(brand.name)} className={`text-left px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all ${selectedBrand === brand.name ? "bg-amber-500 text-black translate-x-1" : "text-zinc-500 hover:text-white"}`}>{brand.name}</button>
+                ))}
+              </div>
+            </div>
+
           </aside>
 
           {/* MAIN AREA */}
@@ -287,11 +300,15 @@ export default function ShopPage({ cart, setCart }) {
                     className="w-full bg-white/5 border border-white/10 py-5 pl-16 pr-8 rounded-[30px] focus:border-amber-500/50 outline-none font-black italic text-[11px] tracking-[0.2em] uppercase transition-all"
                   />
                 </div>
-                <select onChange={(e) => setSortBy(e.target.value)} className="w-full xl:w-64 bg-white/5 border border-white/10 px-8 py-5 rounded-[30px] font-black italic text-[11px] outline-none cursor-pointer uppercase tracking-widest">
-                  <option value="default">SORT: RELEVANCE</option>
-                  <option value="price-low">PRICE: LOW TO HIGH</option>
-                  <option value="price-high">PRICE: HIGH TO LOW</option>
-                  <option value="name">NAME: A-Z</option>
+                {/* SORT DROPDOWN - FIXED VISIBILITY */}
+                <select 
+                  onChange={(e) => setSortBy(e.target.value)} 
+                  className="w-full xl:w-64 bg-zinc-900 border border-white/10 px-8 py-5 rounded-[30px] font-black italic text-[11px] outline-none cursor-pointer uppercase tracking-widest text-white appearance-none"
+                >
+                  <option value="default" className="bg-zinc-900 text-white">SORT: RELEVANCE</option>
+                  <option value="price-low" className="bg-zinc-900 text-white">PRICE: LOW TO HIGH</option>
+                  <option value="price-high" className="bg-zinc-900 text-white">PRICE: HIGH TO LOW</option>
+                  <option value="name" className="bg-zinc-900 text-white">NAME: A-Z</option>
                 </select>
               </div>
             </div>
@@ -322,6 +339,14 @@ export default function ShopPage({ cart, setCart }) {
                 </div>
               ))}
             </div>
+
+            {/* Empty Result Message */}
+            {!loading && filteredProducts.length === 0 && (
+              <div className="text-center py-40">
+                <Package size={48} className="mx-auto text-zinc-800 mb-4 opacity-20" />
+                <p className="text-zinc-500 font-black italic uppercase text-xs tracking-widest">No hardware found matching your criteria</p>
+              </div>
+            )}
           </main>
         </div>
       </div>
@@ -330,6 +355,7 @@ export default function ShopPage({ cart, setCart }) {
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1.5rem center; background-size: 1rem; }
       `}</style>
     </div>
   );
