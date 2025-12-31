@@ -101,7 +101,7 @@ export default function Home({ setPage, cart, setCart }) {
         this.y += this.speed;
         this.opacity -= 0.01;
         if (this.opacity <= 0 || this.x > canvas.width || this.y > canvas.height) {
-          if (Math.random() < 0.001) this.reset();
+          if (Math.random() < 0.01) this.reset();
         }
       }
       draw() {
@@ -182,15 +182,15 @@ export default function Home({ setPage, cart, setCart }) {
         }
       }
       draw() { 
-        const opacity = 0.5 + Math.sin(this.twinkle) * 0.3;
+        const opacity = 0.8 + Math.sin(this.twinkle) * 0.3;
         ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`; 
         ctx.fillRect(this.x, this.y, this.size, this.size); 
       }
     }
 
     planets = [new Planet(60, "#f59e0b", 0.1, 5), new Planet(110, "#78350f", 0.05, 3)];
-    for (let i = 0; i < 150; i++) stars.push(new Star());
-    for (let i = 0; i < 3; i++) shootingStars.push(new ShootingStar());
+    for (let i = 0; i < 300; i++) stars.push(new Star());
+    for (let i = 0; i < 8; i++) shootingStars.push(new ShootingStar());
 
     const animate = () => {
       ctx.fillStyle = "#020202"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -241,7 +241,7 @@ export default function Home({ setPage, cart, setCart }) {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-x-hidden select-none font-sans">
-      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-60" />
+      <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-100" />
 
       <div className="relative z-10 w-full">
         {/* HERO SECTION */}
