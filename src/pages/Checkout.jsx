@@ -1,5 +1,6 @@
 import { Trash2, ShoppingBag, ArrowLeft, MessageSquare, Share2, Facebook, MessageCircle, X, Music2, MapPinned } from "lucide-react";
 import SpaceBackground from "../components/SpaceBackground"; // අපි හදපු Background එක Import කරා
+import { useState } from "react";
 
 export default function Checkout({ cart, removeFromCart, setPage }) {
   const total = cart.reduce((sum, item) => sum + (item.price || item.sellingPrice || 0), 0);
