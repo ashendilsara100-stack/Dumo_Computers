@@ -26,50 +26,121 @@ export default function ShopPage({ cart, setCart }) {
   const [priceRange, setPriceRange] = useState(1000000); 
   const [sortBy, setSortBy] = useState("default");
 
-  // --- Background Animation Logic ---
+  // --- 1. FULL SPACE BACKGROUND LOGIC (Same as Home) ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     let stars = [];
+    let planets = [];
+    let shootingStars = [];
+    let mouse = { x: null, y: null };
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
+    
+    const handleMouseMove = (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+
     window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", handleMouseMove);
     resize();
 
     class Star {
       constructor() {
+        this.reset();
+      }
+      reset() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 2;
-        this.vy = Math.random() * 0.3 + 0.1;
+        this.size = Math.random() * 1.5;
+        this.baseX = this.x;
+        this.baseY = this.y;
+        this.density = (Math.random() * 30) + 1;
       }
       update() {
-        this.y += this.vy;
-        if (this.y > canvas.height) this.y = 0;
+        // Mouse interaction logic
+        let dx = mouse.x - this.x;
+        let dy = mouse.y - this.y;
+        let distance = Math.sqrt(dx*dx + dy*dy);
+        let forceDirectionX = dx / distance;
+        let forceDirectionY = dy / distance;
+        let maxDistance = 100;
+        let force = (maxDistance - distance) / maxDistance;
+        let directionX = forceDirectionX * force * this.density;
+        let directionY = forceDirectionY * force * this.density;
+
+        if (distance < maxDistance) {
+          this.x -= directionX;
+          this.y -= directionY;
+        } else {
+          if (this.x !== this.baseX) {
+            let dx = this.x - this.baseX;
+            this.x -= dx/10;
+          }
+          if (this.y !== this.baseY) {
+            let dy = this.y - this.baseY;
+            this.y -= dy/10;
+          }
+        }
       }
       draw() {
         ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.fillRect(this.x, this.y, this.size, this.size);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
+    class Planet {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.radius = Math.random() * 30 + 10;
+        this.color = `hsla(${Math.random() * 360}, 40%, 30%, 0.4)`;
+        this.speed = Math.random() * 0.2 + 0.05;
+      }
+      update() {
+        this.y += this.speed;
+        if (this.y - this.radius > canvas.height) this.y = -this.radius;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.stroke();
+      }
+    }
+
+    // Initialize
     for (let i = 0; i < 150; i++) stars.push(new Star());
+    for (let i = 0; i < 5; i++) planets.push(new Planet());
 
     const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      planets.forEach(p => { p.update(); p.draw(); });
       stars.forEach(s => { s.update(); s.draw(); });
+      
       requestAnimationFrame(animate);
     };
     animate();
 
-    return () => window.removeEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
 
+  // --- 2. DATA FETCHING & FILTERING ---
   useEffect(() => {
     const unsubProducts = onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snap) => {
       setProducts(snap.docs.map(doc => ({ 
@@ -99,8 +170,9 @@ export default function ShopPage({ cart, setCart }) {
     return () => { unsubProducts(); unsubCats(); unsubBrands(); };
   }, []);
 
+  // --- 3. FIX: ADD TO CART FUNCTION ---
   const addToCart = (p) => {
-    setCart([...cart, p]);
+    setCart((prevCart) => [...prevCart, p]); // Use functional update for safety
     const toast = document.createElement('div');
     toast.className = 'fixed bottom-10 right-10 bg-amber-500 text-black px-8 py-4 rounded-2xl shadow-2xl z-[100] font-black flex items-center gap-3 italic uppercase text-sm border-2 border-black animate-bounce';
     toast.innerHTML = `🚀 ${p.name} ADDED TO CART!`;
@@ -108,6 +180,7 @@ export default function ShopPage({ cart, setCart }) {
     setTimeout(() => toast.remove(), 2000);
   };
 
+  // --- 4. OPTIMIZED SEARCH & FILTER LOGIC ---
   let filteredProducts = products.filter(p => {
     const searchLower = searchTerm.toLowerCase().trim();
     const productName = (p.name || "").toLowerCase();
@@ -126,13 +199,17 @@ export default function ShopPage({ cart, setCart }) {
     return categoryMatch && brandMatch && priceMatch && (nameMatch || isSynonymMatch || searchTerm === "");
   });
 
+  // Apply Sorting
+  if (sortBy === "price-low") filteredProducts.sort((a, b) => a.price - b.price);
+  if (sortBy === "price-high") filteredProducts.sort((a, b) => b.price - a.price);
+  if (sortBy === "name") filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 selection:text-black relative overflow-x-hidden">
       
       <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />
 
       <div className="relative z-10">
-        
         <div className="max-w-7xl mx-auto px-6 pt-28 flex items-center gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-black">
           <span>DUMO STORE</span> <ChevronRight size={12} className="text-amber-500" /> <span className="text-amber-500 italic">Inventory</span>
         </div>
@@ -229,6 +306,14 @@ export default function ShopPage({ cart, setCart }) {
                 </div>
               ))}
             </div>
+            
+            {/* Empty State */}
+            {!loading && filteredProducts.length === 0 && (
+              <div className="text-center py-32 bg-zinc-900/10 rounded-[50px] border border-dashed border-white/10 mt-10">
+                <Package className="w-16 h-16 mx-auto mb-6 text-zinc-800" />
+                <p className="text-zinc-600 font-black italic uppercase tracking-[0.3em] text-xs">No matching components</p>
+              </div>
+            )}
           </main>
         </div>
       </div>
