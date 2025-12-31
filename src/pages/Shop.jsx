@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"; // useRef එකතු කළා
+import { useEffect, useState, useRef } from "react";
 import { db } from "../firebase/config"; 
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { ShoppingCart, Search, Package, ChevronRight, Filter, Coins } from "lucide-react";
@@ -18,7 +18,7 @@ export default function ShopPage({ cart, setCart }) {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
-  const canvasRef = useRef(null); // Canvas එක සඳහා Ref එකක්
+  const canvasRef = useRef(null); 
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -32,8 +32,6 @@ export default function ShopPage({ cart, setCart }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     let stars = [];
-    let planets = [];
-    let shootingStars = [];
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -103,7 +101,11 @@ export default function ShopPage({ cart, setCart }) {
 
   const addToCart = (p) => {
     setCart([...cart, p]);
-    // Toast logic here...
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-10 right-10 bg-amber-500 text-black px-8 py-4 rounded-2xl shadow-2xl z-[100] font-black flex items-center gap-3 italic uppercase text-sm border-2 border-black animate-bounce';
+    toast.innerHTML = `🚀 ${p.name} ADDED TO CART!`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
   };
 
   let filteredProducts = products.filter(p => {
@@ -127,24 +129,20 @@ export default function ShopPage({ cart, setCart }) {
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 selection:text-black relative overflow-x-hidden">
       
-      {/* Background Canvas (Fixed) */}
       <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />
 
-      <div className="relative z-10"> {/* Contents in Z-10 to be above canvas */}
+      <div className="relative z-10">
         
-        {/* Breadcrumbs */}
         <div className="max-w-7xl mx-auto px-6 pt-28 flex items-center gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-black">
           <span>DUMO STORE</span> <ChevronRight size={12} className="text-amber-500" /> <span className="text-amber-500 italic">Inventory</span>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex flex-col lg:flex-row gap-8 md:gap-12">
           
-          {/* SIDEBAR */}
           <aside className="w-full lg:w-80 flex-shrink-0">
             <div className="lg:sticky lg:top-28 space-y-6">
               
-              {/* PRICE RANGE */}
-              <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl group">
+              <div className="bg-zinc-900/40 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl group shadow-2xl">
                 <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
                   <Coins size={14} /> Budget Filter
                 </h3>
@@ -159,23 +157,78 @@ export default function ShopPage({ cart, setCart }) {
                 </div>
               </div>
 
-              {/* Categories & Brands with backdrop-blur */}
-              <div className="bg-zinc-900/40 backdrop-blur-md p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl">
+              <div className="bg-zinc-900/20 backdrop-blur-md p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl">
                 <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic">Component Type</h3>
-                <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[250px] custom-scrollbar pb-2 lg:pb-0">
-                   {/* ... buttons ... */}
+                <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[250px] custom-scrollbar pb-2 lg:pb-0 whitespace-nowrap lg:whitespace-normal">
+                  <button onClick={() => setSelectedCategory("All")} className={`px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all flex-shrink-0 ${selectedCategory === "All" ? "bg-white text-black translate-x-1" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>All Components</button>
+                  {categories.map(cat => (
+                    <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all flex-shrink-0 ${selectedCategory === cat.name ? "bg-white text-black translate-x-1" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>{cat.name}</button>
+                  ))}
                 </div>
               </div>
-              
-              {/* ... Rest of your Sidebar code ... */}
 
+              <div className="bg-zinc-900/20 backdrop-blur-md p-6 md:p-8 rounded-[35px] border border-white/5 shadow-2xl">
+                <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-zinc-500 uppercase italic">Popular Brands</h3>
+                <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:max-h-[200px] custom-scrollbar pb-2 lg:pb-0 whitespace-nowrap lg:whitespace-normal">
+                  <button onClick={() => setSelectedBrand("All")} className={`px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all flex-shrink-0 ${selectedBrand === "All" ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-white"}`}>All Brands</button>
+                  {brands.map(brand => (
+                    <button key={brand.id} onClick={() => setSelectedBrand(brand.name)} className={`px-6 py-3 rounded-2xl font-black italic text-[11px] uppercase transition-all flex-shrink-0 ${selectedBrand === brand.name ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>{brand.name}</button>
+                  ))}
+                </div>
+              </div>
             </div>
           </aside>
 
-          {/* MAIN AREA */}
           <main className="flex-1">
-             {/* ... Search & Products grid ... */}
-             {/* Ensure card backgrounds are also semi-transparent: bg-zinc-900/40 backdrop-blur-sm */}
+            <div className="flex flex-col xl:flex-row gap-6 mb-10 items-start xl:items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-600" size={18} />
+                <input 
+                  type="text" placeholder="SEARCH (GPU, SSD, PROCESSOR...)" 
+                  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-zinc-900/40 border border-white/5 py-5 pl-16 pr-8 rounded-[30px] focus:border-amber-500/30 outline-none font-black italic text-[11px] tracking-[0.2em] uppercase transition-all backdrop-blur-md"
+                />
+              </div>
+              <select onChange={(e) => setSortBy(e.target.value)} className="w-full xl:w-64 bg-zinc-900/40 border border-white/5 px-8 py-5 rounded-[30px] font-black italic text-[11px] outline-none cursor-pointer uppercase tracking-widest backdrop-blur-md">
+                <option value="default">SORT BY: RELEVANCE</option>
+                <option value="price-low">PRICE: LOW TO HIGH</option>
+                <option value="price-high">PRICE: HIGH TO LOW</option>
+                <option value="name">NAME: A-Z</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-4 mb-8 ml-2">
+              <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter">Catalog</h2>
+              <span className="h-[2px] flex-1 bg-zinc-900"></span>
+              <p className="text-zinc-700 font-black italic text-[10px] uppercase tracking-[0.3em]">Found {filteredProducts.length} Items</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
+              {filteredProducts.map(p => (
+                <div key={p.id} className="group bg-zinc-900/20 border border-white/5 rounded-[35px] md:rounded-[45px] p-4 md:p-6 hover:bg-zinc-900/40 transition-all duration-700 flex flex-col shadow-2xl relative overflow-hidden backdrop-blur-sm">
+                  <div className="relative aspect-square bg-black/40 rounded-[25px] md:rounded-[35px] mb-6 flex items-center justify-center border border-white/5 overflow-hidden">
+                    <img src={p.image || "https://via.placeholder.com/400"} alt={p.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0" />
+                    <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md text-amber-500 text-[8px] font-black px-3 py-1.5 rounded-full uppercase italic border border-amber-500/20">
+                      {p.brand}
+                    </div>
+                  </div>
+                  <div className="flex-1 px-1">
+                    <p className="text-amber-500 text-[9px] font-black mb-2 uppercase tracking-[0.2em] italic flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span> {p.category}
+                    </p>
+                    <h3 className="text-sm md:text-xl font-black text-white mb-4 leading-tight uppercase italic group-hover:text-amber-500 transition-colors line-clamp-2 h-10 md:h-14">
+                      {p.name}
+                    </h3>
+                    <p className="text-lg md:text-3xl font-black italic tracking-tighter mb-6 pt-4 border-t border-white/5">
+                      LKR {p.price.toLocaleString()}
+                    </p>
+                  </div>
+                  <button onClick={() => addToCart(p)} className="w-full bg-white text-black py-4 md:py-5 rounded-[20px] md:rounded-[25px] font-black flex items-center justify-center gap-3 hover:bg-amber-500 transition-all active:scale-95 uppercase italic text-[10px] md:text-[11px] tracking-widest shadow-xl">
+                    <ShoppingCart size={16} className="hidden md:block" /> Add To Cart
+                  </button>
+                </div>
+              ))}
+            </div>
           </main>
         </div>
       </div>
