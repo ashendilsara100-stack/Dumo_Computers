@@ -37,6 +37,8 @@ export default function ShopPage({ cart, setCart }) {
   const [priceRange, setPriceRange] = useState(1000000); 
   const [sortBy, setSortBy] = useState("default");
 
+  const [isSocialOpen, setIsSocialOpen] = useState(false);
+
   const filteredProducts = useMemo(() => {
     let result = products.filter(p => {
       const searchLower = searchTerm.toLowerCase().trim();
