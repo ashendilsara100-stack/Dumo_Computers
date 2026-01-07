@@ -1,9 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { db } from "../firebase/config"; 
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { ShoppingCart, Search, Package, ChevronRight, Coins, LayoutGrid, Share2, Facebook, MessageCircle, X, Music2, MapPinned } from "lucide-react";
+import { ShoppingCart, Search, Package, ChevronRight, Coins, LayoutGrid, Share2, Facebook, MessageCircle, X, Music2, MapPinned, Filter } from "lucide-react";
 import SpaceBackground from "../components/SpaceBackground";
-
 
 const categorySynonyms = {
   gpu: ["graphic card", "vga", "graphics card", "video card", "gpu", "nvidia", "rtx", "gtx", "radeon", "display"],
@@ -15,7 +14,6 @@ const categorySynonyms = {
   motherboard: ["board", "mobo", "mainboard", "motherboard", "mb"]
 };
 
-// --- SKELETON COMPONENT ---
 const SkeletonCard = () => (
   <div className="bg-zinc-900/30 border border-white/5 rounded-[35px] p-6 animate-pulse">
     <div className="aspect-square bg-white/5 rounded-[25px] mb-6"></div>
@@ -38,6 +36,7 @@ export default function ShopPage({ cart, setCart }) {
   const [sortBy, setSortBy] = useState("default");
 
   const [isSocialOpen, setIsSocialOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false); // Mobile filter toggle
 
   const filteredProducts = useMemo(() => {
     let result = products.filter(p => {
@@ -103,11 +102,11 @@ export default function ShopPage({ cart, setCart }) {
       <SpaceBackground />
 
       <div className="relative z-10">
-
+        
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex flex-col lg:flex-row gap-8 md:gap-12 items-start">
           
-          {/* SIDEBAR */}
-          <aside className="w-full lg:w-80 lg:sticky lg:top-24 z-20 space-y-6 animate-reveal-left">
+          {/* SIDEBAR - HIDDEN ON MOBILE */}
+          <aside className="hidden lg:block w-80 lg:sticky lg:top-24 z-20 space-y-6 animate-reveal-left">
             <div className="bg-zinc-900/60 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl shadow-2xl">
               <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
                 <Coins size={14} /> Budget Filter
@@ -145,19 +144,48 @@ export default function ShopPage({ cart, setCart }) {
 
           {/* MAIN AREA */}
           <main className="flex-1 w-full">
-            <div className="sticky top-20 lg:top-24 z-30 pb-6 animate-reveal-up">
-              <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center bg-black/80 backdrop-blur-2xl p-4 rounded-[40px] border border-white/10 shadow-2xl">
-                <div className="relative flex-1 w-full">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                  <input 
-                    type="text" placeholder="SEARCH HARDWARE..." 
-                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 py-5 pl-16 pr-8 rounded-[30px] focus:border-amber-500/50 outline-none font-black italic text-[11px] tracking-[0.2em] uppercase transition-all"
-                  />
+            <div className="sticky top-20 lg:top-24 z-30 pb-6 animate-reveal-up space-y-4">
+              
+              {/* MOBILE HORIZONTAL CATEGORIES */}
+              <div className="lg:hidden flex overflow-x-auto gap-2 no-scrollbar pb-2">
+                <button 
+                  onClick={() => setSelectedCategory("All")}
+                  className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedCategory === "All" ? "bg-amber-500 text-black border-amber-500" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
+                >
+                  All
+                </button>
+                {categories.map(cat => (
+                  <button 
+                    key={cat.id} 
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedCategory === cat.name ? "bg-amber-500 text-black border-amber-500" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center bg-black/80 backdrop-blur-2xl p-3 md:p-4 rounded-[30px] md:rounded-[40px] border border-white/10 shadow-2xl">
+                <div className="relative flex-1 w-full flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                    <input 
+                      type="text" placeholder="SEARCH HARDWARE..." 
+                      value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 py-4 md:py-5 pl-14 pr-8 rounded-[25px] md:rounded-[30px] focus:border-amber-500/50 outline-none font-black italic text-[10px] tracking-[0.2em] uppercase transition-all"
+                    />
+                  </div>
+                  {/* MOBILE FILTER BUTTON */}
+                  <button 
+                    onClick={() => setIsFilterOpen(true)}
+                    className="lg:hidden bg-zinc-900 p-4 rounded-2xl border border-white/5 text-amber-500 shadow-xl active:scale-90 transition-transform"
+                  >
+                    <Filter size={20} />
+                  </button>
                 </div>
                 <select 
                   onChange={(e) => setSortBy(e.target.value)} 
-                  className="w-full xl:w-64 bg-zinc-900 border border-white/10 px-8 py-5 rounded-[30px] font-black italic text-[11px] outline-none cursor-pointer uppercase tracking-widest text-white appearance-none"
+                  className="w-full xl:w-64 bg-zinc-900 border border-white/10 px-8 py-4 md:py-5 rounded-[25px] md:rounded-[30px] font-black italic text-[10px] outline-none cursor-pointer uppercase tracking-widest text-white appearance-none"
                 >
                   <option value="default">SORT: RELEVANCE</option>
                   <option value="price-low">PRICE: LOW TO HIGH</option>
@@ -167,7 +195,7 @@ export default function ShopPage({ cart, setCart }) {
               </div>
             </div>
 
-            {/* PRODUCT GRID - UPDATED FOR 4 COLUMNS ON MOBILE */}
+            {/* PRODUCT GRID */}
             <div className="grid grid-cols-4 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-8">
               {loading ? (
                 [1,2,3,4,5,6,7,8].map(i => <SkeletonCard key={i} />)
@@ -213,14 +241,47 @@ export default function ShopPage({ cart, setCart }) {
           </main>
         </div>
 
+        {/* MOBILE FILTER DRAWER */}
+        {isFilterOpen && (
+          <div className="fixed inset-0 z-[150] lg:hidden animate-fade-in">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsFilterOpen(false)} />
+            <div className="absolute right-0 top-0 h-full w-[80%] bg-zinc-950 border-l border-white/10 p-8 shadow-2xl overflow-y-auto animate-reveal-right">
+              <div className="flex items-center justify-between mb-10">
+                <h2 className="text-lg font-black italic uppercase tracking-widest text-amber-500">Filters</h2>
+                <button onClick={() => setIsFilterOpen(false)} className="text-zinc-500"><X /></button>
+              </div>
+              
+              <div className="space-y-12">
+                <div className="space-y-6">
+                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-500 uppercase italic">Budget (LKR)</h3>
+                   <input type="range" min="0" max="1000000" step="5000" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} className="w-full h-1.5 bg-zinc-800 rounded-lg accent-amber-500" />
+                   <div className="text-white font-black italic text-xl">LKR {Number(priceRange).toLocaleString()}</div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-500 uppercase italic">Brands</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setSelectedBrand("All")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic ${selectedBrand === "All" ? "bg-amber-500 text-black" : "bg-white/5 text-zinc-500"}`}>All Brands</button>
+                    {brands.map(brand => (
+                      <button key={brand.id} onClick={() => setSelectedBrand(brand.name)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic ${selectedBrand === brand.name ? "bg-amber-500 text-black" : "bg-white/5 text-zinc-500"}`}>{brand.name}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={() => setIsFilterOpen(false)} className="w-full mt-12 bg-white text-black py-5 rounded-2xl font-black uppercase italic tracking-widest">Show Results</button>
+            </div>
+          </div>
+        )}
+
         {/* SOCIAL MENU */}
         <div className="fixed bottom-6 right-6 z-[100]">
           {isSocialOpen && (
             <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
-              <a href="https://maps.app.goo.gl/eGEG6g1KRz5un6R87" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
-              <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
-              <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
-              <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
+              <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
+              <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
+              <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
+              <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
             </div>
           )}
           <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
@@ -234,28 +295,20 @@ export default function ShopPage({ cart, setCart }) {
         .custom-scrollbar::-webkit-scrollbar { width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        @keyframes reveal-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes reveal-left {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slide-in {
-          from { opacity: 0; transform: translateX(100%); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+        @keyframes reveal-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes reveal-left { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes reveal-right { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slide-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
         .animate-reveal-up { animation: reveal-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
         .animate-reveal-left { animation: reveal-left 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+        .animate-reveal-right { animation: reveal-right 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
         .animate-slide-in { animation: slide-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
-        .animate-fade-in { animation: fade-in 1s ease-out both; }
+        .animate-fade-in { animation: fade-in 0.4s ease-out both; }
         .fill-mode-both { animation-fill-mode: both; }
 
         select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1.5rem center; background-size: 1rem; }
