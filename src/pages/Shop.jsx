@@ -99,7 +99,7 @@ export default function ShopPage({ cart, setCart }) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative">
+    <div className="min-h-screen max-w-full bg-black text-white relative">
       <SpaceBackground />
 
       <div className="relative z-10">
