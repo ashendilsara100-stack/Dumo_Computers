@@ -7,6 +7,10 @@ export default function SpaceBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    
+    // Mobile Check
+    const isMobile = window.innerWidth < 768;
+
     let stars = [];
     let planets = [];
     let shootingStars = [];
@@ -97,7 +101,7 @@ export default function SpaceBackground() {
       init() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 2;
+        this.size = Math.random() * (isMobile ? 1.2 : 2); // Smaller stars on mobile
         this.vy = Math.random() * 0.3 + 0.1;
       }
       update() {
@@ -118,9 +122,17 @@ export default function SpaceBackground() {
       }
     }
 
-    planets = [new Planet(60, "#f59e0b", 0.1, 5), new Planet(110, "#78350f", 0.05, 3)];
-    for (let i = 0; i < 200; i++) stars.push(new Star());
-    for (let i = 0; i < 5; i++) shootingStars.push(new ShootingStar());
+    // INITIALIZATION BASED ON DEVICE
+    if (!isMobile) {
+      planets = [new Planet(60, "#f59e0b", 0.1, 5), new Planet(110, "#78350f", 0.05, 3)];
+      for (let i = 0; i < 5; i++) shootingStars.push(new ShootingStar());
+    } else {
+      // Minimal shooting stars for mobile
+      shootingStars.push(new ShootingStar());
+    }
+
+    const starCount = isMobile ? 60 : 200;
+    for (let i = 0; i < starCount; i++) stars.push(new Star());
 
     const animate = () => {
       ctx.fillStyle = "#020202"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -138,7 +150,9 @@ export default function SpaceBackground() {
       mouse.y = (e.clientY - canvas.height/2) / 80;
     };
     const handleClick = (e) => {
-      for (let i = 0; i < 20; i++) particles.push(new Particle(e.clientX, e.clientY));
+      // Fewer particles on mobile click
+      const pCount = isMobile ? 8 : 20;
+      for (let i = 0; i < pCount; i++) particles.push(new Particle(e.clientX, e.clientY));
     };
 
     window.addEventListener("mousemove", handleMouseMove);
