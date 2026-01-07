@@ -99,13 +99,10 @@ export default function ShopPage({ cart, setCart }) {
   };
 
   return (
-    <div className="min-h-screen max-w-full bg-black text-white relative">
+    <div className="min-h-screen bg-black text-white relative">
       <SpaceBackground />
 
       <div className="relative z-10">
-        <div className="max-w-7xl mx-auto px-6 pt-28 flex items-center gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-black animate-fade-in">
-          <span>DUMO STORE</span> <ChevronRight size={12} className="text-amber-500" /> <span className="text-amber-500 italic">Inventory</span>
-        </div>
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex flex-col lg:flex-row gap-8 md:gap-12 items-start">
           
@@ -170,8 +167,8 @@ export default function ShopPage({ cart, setCart }) {
               </div>
             </div>
 
-            {/* PRODUCT GRID - AUTO ADJUSTED */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
+            {/* PRODUCT GRID - UPDATED FOR 4 COLUMNS ON MOBILE */}
+            <div className="grid grid-cols-4 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-8">
               {loading ? (
                 [1,2,3,4,5,6,7,8].map(i => <SkeletonCard key={i} />)
               ) : (
@@ -179,27 +176,28 @@ export default function ShopPage({ cart, setCart }) {
                   <div 
                     key={p.id} 
                     style={{ animationDelay: `${index * 0.05}s` }}
-                    className="group bg-zinc-900/30 border border-white/5 rounded-[20px] md:rounded-[45px] p-3 md:p-6 hover:bg-zinc-900/50 transition-all duration-700 flex flex-col shadow-2xl relative overflow-hidden backdrop-blur-sm animate-reveal-up fill-mode-both"
+                    className="group bg-zinc-900/30 border border-white/5 rounded-[12px] md:rounded-[45px] p-1.5 md:p-6 hover:bg-zinc-900/50 transition-all duration-700 flex flex-col shadow-2xl relative overflow-hidden backdrop-blur-sm animate-reveal-up fill-mode-both"
                   >
-                    <div className="relative aspect-square bg-black/40 rounded-[15px] md:rounded-[35px] mb-3 md:mb-6 overflow-hidden border border-white/5">
+                    <div className="relative aspect-square bg-black/40 rounded-[8px] md:rounded-[35px] mb-1.5 md:mb-6 overflow-hidden border border-white/5">
                       <img src={p.image || "https://via.placeholder.com/400"} alt={p.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0" />
-                      <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-md text-amber-500 text-[6px] md:text-[8px] font-black px-2 py-1 rounded-full uppercase italic border border-amber-500/20">
+                      <div className="absolute top-1 left-1 bg-black/80 backdrop-blur-md text-amber-500 text-[4px] md:text-[8px] font-black px-1 py-0.5 rounded-full uppercase italic border border-amber-500/20">
                         {p.brand}
                       </div>
                     </div>
-                    <div className="flex-1 px-1">
-                      <p className="text-amber-500 text-[7px] md:text-[9px] font-black mb-1 md:mb-2 uppercase tracking-[0.2em] italic flex items-center gap-1">
-                        <span className="w-1 h-1 bg-amber-500 rounded-full"></span> {p.category}
+                    <div className="flex-1 px-0.5">
+                      <p className="text-amber-500 text-[5px] md:text-[9px] font-black mb-1 md:mb-2 uppercase tracking-tighter italic flex items-center gap-1">
+                        <span className="w-0.5 h-0.5 bg-amber-500 rounded-full"></span> {p.category}
                       </p>
-                      <h3 className="text-[10px] md:text-lg font-black text-white mb-2 md:mb-4 leading-tight uppercase italic group-hover:text-amber-500 transition-colors line-clamp-2 h-7 md:h-14">
+                      <h3 className="text-[7px] md:text-lg font-black text-white mb-1 md:mb-4 leading-tight uppercase italic group-hover:text-amber-500 transition-colors line-clamp-2 h-4 md:h-14">
                         {p.name}
                       </h3>
-                      <p className="text-xs md:text-2xl font-black italic tracking-tighter mb-3 md:mb-6 pt-2 md:pt-4 border-t border-white/5">
+                      <p className="text-[8px] md:text-2xl font-black italic tracking-tighter mb-2 md:mb-6 pt-1 md:pt-4 border-t border-white/5 text-white/90">
                         LKR {p.price.toLocaleString()}
                       </p>
                     </div>
-                    <button onClick={() => addToCart(p)} className="w-full bg-white text-black py-3 md:py-5 rounded-[12px] md:rounded-[25px] font-black flex items-center justify-center gap-2 hover:bg-amber-500 transition-all active:scale-95 uppercase italic text-[8px] md:text-[11px] tracking-widest shadow-xl">
-                      <ShoppingCart size={14} className="md:w-4 md:h-4" /> Add To Cart
+                    <button onClick={() => addToCart(p)} className="w-full bg-white text-black py-1.5 md:py-5 rounded-[6px] md:rounded-[25px] font-black flex items-center justify-center gap-1 md:gap-2 hover:bg-amber-500 transition-all active:scale-95 uppercase italic text-[6px] md:text-[11px] tracking-widest shadow-xl">
+                      <ShoppingCart size={10} className="md:w-4 md:h-4" /> 
+                      <span className="hidden md:inline">Add</span>
                     </button>
                   </div>
                 ))
