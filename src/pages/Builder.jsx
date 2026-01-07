@@ -66,85 +66,95 @@ const PCBuilder = ({ cart, setCart }) => {
   };
 
   const handleDownloadQuotation = () => {
-    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
-    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+    try {
+      const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+      if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
 
-    const doc = new jsPDF();
-    const date = new Date().toLocaleDateString();
-    const quoteNo = `DQ-${Math.floor(1000 + Math.random() * 9000)}`;
+      const doc = new jsPDF();
+      const date = new Date().toLocaleDateString();
+      const quoteNo = `DQ-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // --- HEADER DESIGN (Original Dumo Style) ---
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text("DUMO COMPUTERS WELIWERIYA", 105, 20, { align: "center" });
-    
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text("No. 502/1/B, Kandy Road, Weliweriya.", 105, 26, { align: "center" });
-    doc.text("Tel: 074 229 9006 | Email: dumocomputers@gmail.com", 105, 31, { align: "center" });
+      // මුදල් format කරන විදිහ හරිගස්සා ඇත
+      const formatCurrency = (num) => {
+        return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+      };
 
-    doc.setDrawColor(200);
-    doc.line(14, 38, 196, 38);
+      // --- HEADER SECTION (DUMO STYLE) ---
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text("DUMO COMPUTERS WELIWERIYA", 105, 20, { align: "center" });
+      
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("No. 502/1/B, Kandy Road, Weliweriya.", 105, 26, { align: "center" });
+      doc.text("Tel: 074 229 9006 | Email: dumocomputers@gmail.com", 105, 31, { align: "center" });
 
-    doc.setFont("helvetica", "bold");
-    doc.text(`Quote No: ${quoteNo}`, 14, 45);
-    doc.text(`Date: ${date}`, 196, 45, { align: "right" });
-    doc.text(`Customer: Cash Customer`, 14, 52);
-    
-    doc.line(14, 58, 196, 58);
+      doc.setDrawColor(200);
+      doc.line(14, 38, 196, 38);
 
-    doc.setFontSize(14);
-    doc.text("QUOTATION", 14, 68);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Quote No: ${quoteNo}`, 14, 45);
+      doc.text(`Date: ${date}`, 196, 45, { align: "right" });
+      doc.text(`Customer: Cash Customer`, 14, 52);
+      
+      doc.line(14, 58, 196, 58);
 
-    // --- TABLE DATA ---
-    const tableRows = selectedItems.map(([cat, comp], index) => [
-      index + 1,
-      `${componentLabels[cat].toUpperCase()} - ${comp.name}`,
-      "1.00 QTY",
-      Number(comp.sellingPrice).toLocaleString('.00'),
-      Number(comp.sellingPrice).toLocaleString('.00')
-    ]);
+      doc.setFontSize(14);
+      doc.text("QUOTATION", 14, 68);
 
-    doc.autoTable({
-      startY: 75,
-      head: [['#', 'PRODUCT DESCRIPTION', 'QTY', 'UNIT PRICE', 'SUBTOTAL']],
-      body: tableRows,
-      theme: 'grid',
-      headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 90 },
-        2: { cellWidth: 25, halign: 'center' },
-        3: { cellWidth: 30, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' },
-      },
-    });
+      // --- TABLE SECTION ---
+      const tableRows = selectedItems.map(([cat, comp], index) => [
+        index + 1,
+        `${componentLabels[cat].toUpperCase()} - ${comp.name}`,
+        "1.00 QTY",
+        formatCurrency(comp.sellingPrice), // Error එක මෙතනින් ඉවත් කළා
+        formatCurrency(comp.sellingPrice)
+      ]);
 
-    // --- TOTALS ---
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Subtotal: LKR ${totalPrice.toLocaleString('.00')}`, 196, finalY, { align: "right" });
-    doc.setFontSize(12);
-    doc.text(`Total Amount: LKR ${totalPrice.toLocaleString('.00')}`, 196, finalY + 8, { align: "right" });
+      autoTable(doc, {
+        startY: 75,
+        head: [['#', 'PRODUCT DESCRIPTION', 'QTY', 'UNIT PRICE', 'SUBTOTAL']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 30, halign: 'right' },
+        },
+      });
 
-    // --- TERMS ---
-    const termsY = finalY + 25;
-    doc.setFontSize(10);
-    doc.text("Terms & Conditions:", 14, termsY);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    const terms = [
-      "* Prices subject to change without prior notice.",
-      "* All prices are subject for all exchange.",
-      "* Warranty: 03-36 Months warranty for components (item based).",
-      "* Physical damages and burn marks void warranty.",
-      "THANK YOU FOR YOUR BUSINESS!"
-    ];
-    terms.forEach((line, i) => doc.text(line, 14, termsY + 6 + (i * 4)));
+      // --- TOTAL SECTION ---
+      const finalY = doc.lastAutoTable.finalY + 10;
+      doc.setFont("helvetica", "bold");
+      doc.text(`Subtotal: LKR ${formatCurrency(totalPrice)}`, 196, finalY, { align: "right" });
+      doc.setFontSize(12);
+      doc.text(`Total Amount: LKR ${formatCurrency(totalPrice)}`, 196, finalY + 8, { align: "right" });
 
-    doc.save(`DUMO_QUOTATION_${quoteNo}.pdf`);
-    showToast("QUOTATION DOWNLOADED!", "border-green-500");
+      // --- TERMS & CONDITIONS ---
+      const termsY = finalY + 25;
+      doc.setFontSize(10);
+      doc.text("Terms & Conditions:", 14, termsY);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      const terms = [
+        "* Prices subject to change without prior notice.",
+        "* Warranty: 03-36 Months warranty for components.",
+        "* Physical damages and burn marks void warranty.",
+        "THANK YOU FOR YOUR BUSINESS!"
+      ];
+      terms.forEach((line, i) => doc.text(line, 14, termsY + 6 + (i * 4)));
+
+      doc.save(`DUMO_QUOTATION_${quoteNo}.pdf`);
+      showToast("QUOTATION DOWNLOADED!", "border-green-500");
+
+    } catch (error) {
+      console.error("PDF Error: ", error);
+      showToast("ERROR GENERATING PDF", "border-red-500");
+    }
   };
 
   const handleShareBuild = () => {
