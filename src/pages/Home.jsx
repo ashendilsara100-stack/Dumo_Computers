@@ -45,8 +45,8 @@ export default function Home({ setPage, cart, setCart }) {
       <SpaceBackground />
 
       <div className="relative z-10 w-full">
-        {/* HERO SECTION */}
-        <section className="min-h-[90vh] flex items-center px-6 lg:px-12 max-w-7xl mx-auto pt-20">
+        {/* HERO SECTION - Max-width අයින් කර පේළිය දිගු කරන ලදී */}
+        <section className="min-h-[90vh] flex items-center px-6 lg:px-20 w-full pt-20">
           <div className="w-full grid lg:grid-cols-2 gap-12 items-center">
             
             {/* Hero Text with Animations */}
@@ -74,31 +74,31 @@ export default function Home({ setPage, cart, setCart }) {
               </div>
             </div>
 
-            {/* Hero Image with Floating & Reveal Animation */}
+            {/* Hero Image */}
             <div className="hidden lg:flex justify-end relative animate-reveal-right" style={{ animationDelay: '0.3s' }}>
               <div className="absolute inset-0 bg-amber-500/10 blur-[80px] rounded-full animate-pulse"></div>
               <img 
                 src="https://i.ibb.co/XrC6Y9fy/download-10-removebg-preview.png" 
-                className="w-full max-w-[500px] relative z-10 drop-shadow-[0_0_50px_rgba(245,158,11,0.2)] animate-float" 
+                className="w-full max-w-[550px] relative z-10 drop-shadow-[0_0_50px_rgba(245,158,11,0.2)] animate-float" 
                 alt="gaming pc" 
               />
             </div>
           </div>
         </section>
 
-        {/* TRUST BADGES - Smooth slide up */}
+        {/* TRUST BADGES */}
         <div className="bg-white text-black py-10 px-6 font-black uppercase italic shadow-2xl relative z-20 animate-reveal-up" style={{ animationDelay: '1.5s' }}>
-          <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-around gap-8 text-sm md:text-base">
+          <div className="w-full lg:px-14 flex flex-wrap justify-center md:justify-around gap-8 text-sm md:text-base">
             <div className="flex items-center gap-2 hover:text-amber-500 transition-colors cursor-pointer"><Truck size={22}/> ISLANDWIDE DELIVERY</div>
             <div className="flex items-center gap-2 hover:text-amber-500 transition-colors cursor-pointer"><ShieldCheck size={22}/> GENUINE WARRANTY</div>
             <div className="flex items-center gap-2 hover:text-amber-500 transition-colors cursor-pointer"><Zap size={22}/> TECH SUPPORT</div>
           </div>
         </div>
 
-        {/* FEATURED PRODUCTS - Staggered entrance */}
-        <section className="max-w-7xl mx-auto px-6 py-24">
+        {/* FEATURED PRODUCTS - Responsive Grid with full width */}
+        <section className="w-full px-6 lg:px-20 py-24">
           <h2 className="text-3xl md:text-5xl font-black mb-12 italic uppercase border-l-8 border-amber-500 pl-6 tracking-tight animate-reveal-left">FEATURED HARDWARE</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
             {products.length > 0 ? products.map((p, i) => (
               <div 
                 key={p.id} 
@@ -115,14 +115,14 @@ export default function Home({ setPage, cart, setCart }) {
                 </button>
               </div>
             )) : (
-              [1,2,3,4].map(n => <div key={n} className="h-[400px] bg-zinc-900/20 rounded-[35px] animate-pulse border border-white/5"></div>)
+              [1,2,3,4,5].map(n => <div key={n} className="h-[400px] bg-zinc-900/20 rounded-[35px] animate-pulse border border-white/5"></div>)
             )}
           </div>
         </section>
 
         {/* CTA SECTION */}
-        <section className="px-6 py-20 animate-reveal-up" style={{ animationDelay: '2.5s' }}>
-          <div className="max-w-5xl mx-auto bg-amber-500 py-16 md:py-24 px-8 rounded-[50px] md:rounded-[70px] text-black text-center relative overflow-hidden shadow-2xl group">
+        <section className="px-6 lg:px-20 py-20 animate-reveal-up" style={{ animationDelay: '2.5s' }}>
+          <div className="w-full max-w-[1600px] mx-auto bg-amber-500 py-16 md:py-24 px-8 rounded-[50px] md:rounded-[70px] text-black text-center relative overflow-hidden shadow-2xl group">
             <div className="relative z-10">
               <h2 className="text-4xl md:text-7xl font-black mb-10 italic uppercase leading-[0.9] tracking-tighter">READY TO BUILD <br className="hidden md:block"/> YOUR DREAM RIG?</h2>
               <a href="https://wa.me/94742299006" target="_blank" rel="noreferrer">
