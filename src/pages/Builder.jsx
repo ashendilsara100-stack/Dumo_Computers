@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from "../firebase/config";
 import { collection, onSnapshot, doc, runTransaction, addDoc } from "firebase/firestore";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth"; // Auth එකතු කළා
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
 import { 
   Cpu, HardDrive, Zap, Box, Fan, Monitor, ShoppingCart, 
   CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2, Facebook, X, Music2, MapPinned 
@@ -10,10 +10,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JsBarcode from 'jsbarcode';
 import SpaceBackground from "../components/SpaceBackground";
+import Swal from 'sweetalert2'; // SweetAlert එකතු කළා
 
 const PCBuilder = ({ cart, setCart }) => {
   const [products, setProducts] = useState([]);
-  const [user, setUser] = useState(null); // ලොග් වුණ යූසර්ව තියාගන්න
+  const [user, setUser] = useState(null);
   const [selectedComponents, setSelectedComponents] = useState({
     cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooling: null
   });
@@ -22,7 +23,6 @@ const PCBuilder = ({ cart, setCart }) => {
 
   const auth = getAuth();
 
-  // යූසර් ලොග් වෙලාද නැද්ද කියලා හැමතිස්සෙම චෙක් කරනවා
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -43,20 +43,40 @@ const PCBuilder = ({ cart, setCart }) => {
     setTotalPrice(total);
   }, [selectedComponents]);
 
-  // --- SAVE BUILD LOGIC ---
+  // --- IMPROVED SAVE BUILD LOGIC ---
   const handleSaveBuild = async () => {
     let currentUser = user;
 
-    // 1. ලොග් වෙලා නැත්නම් ලොගින් එක ඉල්ලනවා
+    // 1. ලොග් වෙලා නැත්නම් ලස්සන Popup එකක් පෙන්වනවා
     if (!currentUser) {
-      const provider = new GoogleAuthProvider();
-      try {
-        const result = await signInWithPopup(auth, provider);
-        currentUser = result.user;
-        showToast(`WELCOME ${currentUser.displayName.toUpperCase()}!`, "border-green-500");
-      } catch (error) {
-        showToast("LOGIN FAILED!", "border-red-500");
-        return;
+      const result = await Swal.fire({
+        title: 'LOGIN REQUIRED',
+        text: "Please login with Google to save your custom PC builds to your profile.",
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'LOGIN WITH GOOGLE',
+        cancelButtonText: 'MAYBE LATER',
+        background: '#000',
+        color: '#fff',
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#27272a',
+        customClass: {
+          popup: 'rounded-[30px] border border-white/10 font-black uppercase italic'
+        }
+      });
+
+      if (result.isConfirmed) {
+        const provider = new GoogleAuthProvider();
+        try {
+          const authResult = await signInWithPopup(auth, provider);
+          currentUser = authResult.user;
+          showToast(`WELCOME ${currentUser.displayName.toUpperCase()}!`, "border-green-500");
+        } catch (error) {
+          showToast("LOGIN FAILED!", "border-red-500");
+          return;
+        }
+      } else {
+        return; 
       }
     }
 
@@ -75,7 +95,17 @@ const PCBuilder = ({ cart, setCart }) => {
         totalPrice: totalPrice,
         createdAt: new Date()
       });
-      showToast("BUILD SAVED TO YOUR ACCOUNT!", "border-green-500");
+      
+      Swal.fire({
+        title: 'BUILD SAVED!',
+        text: 'Your PC build has been saved to your account.',
+        icon: 'success',
+        background: '#000',
+        color: '#fff',
+        confirmButtonColor: '#f59e0b',
+        customClass: { popup: 'rounded-[30px] border border-white/10 font-black uppercase italic' }
+      });
+
     } catch (e) {
       console.error("Save error:", e);
       showToast("ERROR SAVING BUILD", "border-red-500");
@@ -144,12 +174,10 @@ const PCBuilder = ({ cart, setCart }) => {
       const docPdf = new jsPDF();
       const now = new Date();
       const dateStr = now.toLocaleDateString('en-GB'); 
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       const quoteNo = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${nextNo}`;
 
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, quoteNo, { format: "CODE128", displayValue: false });
-      const barcodeImg = canvas.toDataURL("image/png");
 
       docPdf.setFont("helvetica", "bold");
       docPdf.setFontSize(40);
@@ -287,7 +315,6 @@ const PCBuilder = ({ cart, setCart }) => {
                             ))}
                         </div>
                         <div className="space-y-3">
-                            {/* --- SAVE BUILD BUTTON --- */}
                             <button onClick={handleSaveBuild} className="w-full bg-amber-500 text-black py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase italic shadow-xl shadow-amber-500/20 mb-2">
                                 <Activity size={18} /> Save Build
                             </button>
