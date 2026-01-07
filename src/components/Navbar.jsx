@@ -17,9 +17,10 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
 
   return (
     <>
-      {/* Desktop Navbar - Sticky & Transparent with Border */}
-      <nav className="bg-black/20 backdrop-blur-md text-white border-b-2 border-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-5">
+      {/* Desktop Navbar - සම්පූර්ණ පළලට විහිදෙන ලෙස සකස් කර ඇත */}
+      <nav className="bg-black/20 backdrop-blur-md text-white border-b-2 border-white sticky top-0 z-50 w-full">
+        {/* max-w-7xl අයින් කර px (padding) වැඩි කරන ලදී */}
+        <div className="w-full px-6 lg:px-12 py-5">
           <div className="flex justify-between items-center">
             {/* Logo */}
             <div 
@@ -33,7 +34,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-4">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPage === item.id;
@@ -84,7 +85,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
         </div>
       </nav>
 
-      {/* Mobile Menu - Fixed and Blurred */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-[60] bg-black/90 backdrop-blur-xl">
           <div className="flex flex-col items-center justify-center h-full gap-4 p-6">

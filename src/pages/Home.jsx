@@ -45,46 +45,48 @@ export default function Home({ setPage, cart, setCart }) {
       <SpaceBackground />
 
       <div className="relative z-10 w-full">
-        {/* HERO SECTION - Max-width අයින් කර පේළිය දිගු කරන ලදී */}
-        <section className="min-h-[90vh] flex items-center px-6 lg:px-20 w-full pt-20">
-          <div className="w-full grid lg:grid-cols-2 gap-12 items-center">
+       {/* HERO SECTION - Image එක balance කර ලස්සන කරන ලදී */}
+<section className="min-h-[90vh] flex items-center px-6 lg:px-20 w-full pt-20">
+  <div className="w-full grid lg:grid-cols-2 gap-8 items-center max-w-[1600px] mx-auto">
+    
+    {/* Hero Text with Animations */}
+    <div className="animate-reveal-up z-20">
+      <span className="bg-amber-500/10 border border-amber-500/30 text-amber-500 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 inline-block shadow-lg animate-fade-in">
+        PREMIUM GAMING GEAR
+      </span>
 
-            {/* Hero Text with Animations */}
-            <div className="animate-reveal-up">
-              <span className="bg-amber-500/10 border border-amber-500/30 text-amber-500 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 inline-block shadow-lg animate-fade-in">
-                PREMIUM GAMING GEAR
-              </span>
+      <h1 className="text-5xl md:text-8xl font-black mb-6 tracking-tighter leading-[0.9] uppercase italic">
+        <TypeWriter text="Build Your" delay={80} /><br />
+        <span className="text-amber-500 inline-block animate-reveal-left" style={{ animationDelay: '0.5s' }}>Dream Computer</span>
+      </h1>
 
-              <h1 className="text-5xl md:text-8xl font-black mb-6 tracking-tighter leading-[0.9] uppercase italic">
-                <TypeWriter text="Build Your" delay={80} /><br />
-                <span className="text-amber-500 inline-block animate-reveal-left" style={{ animationDelay: '0.5s' }}>Dream Computer</span>
-              </h1>
+      <p className="text-gray-400 text-lg md:text-xl mb-10 italic max-w-lg animate-fade-in" style={{ animationDelay: '1s', animationFillMode: 'forwards' }}>
+        Sri Lanka's elite destination for high-end hardware.
+      </p>
 
-              <p className="text-gray-400 text-lg md:text-xl mb-10 italic max-w-lg animate-fade-in" style={{ animationDelay: '1s', animationFillMode: 'forwards' }}>
-                Sri Lanka's elite destination for high-end hardware.
-              </p>
+      <div className="flex flex-col sm:flex-row gap-4 animate-reveal-up" style={{ animationDelay: '1.2s', animationFillMode: 'forwards' }}>
+        <button onClick={() => setPage("shop")} className="group px-10 py-4 bg-white text-black font-black rounded-xl hover:bg-amber-500 transition-all uppercase italic flex items-center justify-center gap-2 text-base relative overflow-hidden active:scale-95">
+          SHOP NOW <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+        </button>
+        <button onClick={() => setPage("builder")} className="px-10 py-4 border-2 border-white/20 font-black rounded-xl hover:bg-white/10 hover:border-amber-500 transition-all uppercase italic text-base active:scale-95">
+          BUILD PC
+        </button>
+      </div>
+    </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 animate-reveal-up" style={{ animationDelay: '1.2s', animationFillMode: 'forwards' }}>
-                <button onClick={() => setPage("shop")} className="group px-10 py-4 bg-white text-black font-black rounded-xl hover:bg-amber-500 transition-all uppercase italic flex items-center justify-center gap-2 text-base relative overflow-hidden active:scale-95">
-                  SHOP NOW <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button onClick={() => setPage("builder")} className="px-10 py-4 border-2 border-white/20 font-black rounded-xl hover:bg-white/10 hover:border-amber-500 transition-all uppercase italic text-base active:scale-95">
-                  BUILD PC
-                </button>
-              </div>
-            </div>
-
-            {/* Hero Image */}
-            <div className="hidden lg:flex justify-end relative animate-reveal-right" style={{ animationDelay: '0.3s' }}>
-              <div className="absolute inset-0 bg-amber-500/10 blur-[80px] rounded-full animate-pulse"></div>
-              <img
-                src="https://i.ibb.co/XrC6Y9fy/download-10-removebg-preview.png"
-                className="w-full max-w-[550px] relative z-10 drop-shadow-[0_0_50px_rgba(245,158,11,0.2)] animate-float"
-                alt="gaming pc"
-              />
-            </div>
-          </div>
-        </section>
+    {/* Hero Image - දැන් මේක දකුණටම යන්නේ නැතුව ලස්සනට මැදිව පෙනෙයි */}
+    <div className="hidden lg:flex justify-center items-center relative animate-reveal-right" style={{ animationDelay: '0.3s' }}>
+      {/* Background Glow - මේක image එක පිටුපසින් ලස්සනට පේනවා */}
+      <div className="absolute w-[400px] h-[400px] bg-amber-500/20 blur-[120px] rounded-full animate-pulse"></div>
+      
+      <img
+        src="https://i.ibb.co/XrC6Y9fy/download-10-removebg-preview.png"
+        className="w-full max-w-[480px] xl:max-w-[550px] relative z-10 drop-shadow-[0_0_60px_rgba(245,158,11,0.3)] animate-float"
+        alt="gaming pc"
+      />
+    </div>
+  </div>
+</section>
 
         {/* TRUST BADGES */}
         <div className="bg-white text-black py-10 px-6 font-black uppercase italic shadow-2xl relative z-20 animate-reveal-up" style={{ animationDelay: '1.5s' }}>
