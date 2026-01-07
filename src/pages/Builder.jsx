@@ -6,7 +6,7 @@ import {
   CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2, Facebook, X, Music2, MapPinned 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // මෙතන 'autoTable' ලෙස import කිරීම අත්‍යවශ්‍යයි
 import SpaceBackground from "../components/SpaceBackground";
 
 const PCBuilder = ({ cart, setCart }) => {
@@ -29,6 +29,11 @@ const PCBuilder = ({ cart, setCart }) => {
       sum + (Number(component?.sellingPrice) || 0), 0);
     setTotalPrice(total);
   }, [selectedComponents]);
+
+  // Currency format කරන්න වෙනම function එකක් (RangeError මගහරවා ගැනීමට)
+  const formatCurrency = (num) => {
+    return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
+  };
 
   const getFilteredItems = (category) => {
     let items = products.filter(p => p.category?.toLowerCase().trim() === category.toLowerCase());
@@ -74,11 +79,6 @@ const PCBuilder = ({ cart, setCart }) => {
       const date = new Date().toLocaleDateString();
       const quoteNo = `DQ-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      // මුදල් format කරන විදිහ හරිගස්සා ඇත
-      const formatCurrency = (num) => {
-        return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-      };
-
       // --- HEADER SECTION (DUMO STYLE) ---
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
@@ -107,7 +107,7 @@ const PCBuilder = ({ cart, setCart }) => {
         index + 1,
         `${componentLabels[cat].toUpperCase()} - ${comp.name}`,
         "1.00 QTY",
-        formatCurrency(comp.sellingPrice), // Error එක මෙතනින් ඉවත් කළා
+        formatCurrency(comp.sellingPrice),
         formatCurrency(comp.sellingPrice)
       ]);
 
@@ -128,13 +128,13 @@ const PCBuilder = ({ cart, setCart }) => {
       });
 
       // --- TOTAL SECTION ---
-      const finalY = doc.lastAutoTable.finalY + 10;
+      const finalY = (doc).lastAutoTable.finalY + 10;
       doc.setFont("helvetica", "bold");
       doc.text(`Subtotal: LKR ${formatCurrency(totalPrice)}`, 196, finalY, { align: "right" });
       doc.setFontSize(12);
       doc.text(`Total Amount: LKR ${formatCurrency(totalPrice)}`, 196, finalY + 8, { align: "right" });
 
-      // --- TERMS & CONDITIONS ---
+      // --- TERMS ---
       const termsY = finalY + 25;
       doc.setFontSize(10);
       doc.text("Terms & Conditions:", 14, termsY);
@@ -142,7 +142,7 @@ const PCBuilder = ({ cart, setCart }) => {
       doc.setFont("helvetica", "normal");
       const terms = [
         "* Prices subject to change without prior notice.",
-        "* Warranty: 03-36 Months warranty for components.",
+        "* Warranty: 03-36 Months warranty for components (item based).",
         "* Physical damages and burn marks void warranty.",
         "THANK YOU FOR YOUR BUSINESS!"
       ];
@@ -151,9 +151,9 @@ const PCBuilder = ({ cart, setCart }) => {
       doc.save(`DUMO_QUOTATION_${quoteNo}.pdf`);
       showToast("QUOTATION DOWNLOADED!", "border-green-500");
 
-    } catch (error) {
-      console.error("PDF Error: ", error);
-      showToast("ERROR GENERATING PDF", "border-red-500");
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      showToast("FAILED TO GENERATE PDF!", "border-red-500");
     }
   };
 
@@ -179,7 +179,6 @@ const PCBuilder = ({ cart, setCart }) => {
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 relative">
       <SpaceBackground />
       
-      {/* HEADER SECTION */}
       <div className="relative pt-32 pb-16 px-6 border-b border-white/5 bg-black/40 backdrop-blur-md z-10">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-8 animate-reveal-up">
           <div>
@@ -197,8 +196,6 @@ const PCBuilder = ({ cart, setCart }) => {
 
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          
-          {/* COMPONENTS LIST */}
           <div className="lg:col-span-8 space-y-6">
             {Object.keys(componentLabels).map((cat, index) => {
               const items = getFilteredItems(cat);
@@ -251,7 +248,6 @@ const PCBuilder = ({ cart, setCart }) => {
             })}
           </div>
 
-          {/* SIDEBAR */}
           <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit">
             <div className="bg-zinc-900/60 border border-white/10 rounded-[45px] p-8 backdrop-blur-3xl shadow-3xl animate-reveal-right">
               <h2 className="text-2xl font-black italic mb-8 uppercase tracking-tighter flex items-center gap-3">
@@ -284,7 +280,6 @@ const PCBuilder = ({ cart, setCart }) => {
         </div>
       </div>
 
-      {/* SOCIALS & STYLES (same as before) */}
       <style jsx>{`
         @keyframes reveal-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes reveal-right { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
