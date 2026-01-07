@@ -195,7 +195,7 @@ export default function ShopPage({ cart, setCart }) {
             </div>
 
             {/* PRODUCT GRID - මම මෙතනත් gap ටිකක් අඩු කරලා width එක වැඩි කරා */}
-            <div className="grid grid-cols-4 md:grid-cols-6 xl:grid-cols-12 gap-4 md:gap-8">
+            <div className="grid grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4 md:gap-8">
               {loading ? (
                 [1,2,3,4,5,6,7,8].map(i => <SkeletonCard key={i} />)
               ) : (
