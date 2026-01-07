@@ -109,7 +109,7 @@ export default function ShopPage({ cart, setCart }) {
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 flex flex-col lg:flex-row gap-8 md:gap-12 items-start">
           
-          {/* SIDEBAR with slide-right animation */}
+          {/* SIDEBAR */}
           <aside className="w-full lg:w-80 lg:sticky lg:top-24 z-20 space-y-6 animate-reveal-left">
             <div className="bg-zinc-900/60 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl shadow-2xl">
               <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
@@ -170,36 +170,36 @@ export default function ShopPage({ cart, setCart }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
+            {/* PRODUCT GRID - AUTO ADJUSTED */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
               {loading ? (
-                // Show 6 skeleton cards while loading
-                [1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)
+                [1,2,3,4,5,6,7,8].map(i => <SkeletonCard key={i} />)
               ) : (
                 filteredProducts.map((p, index) => (
                   <div 
                     key={p.id} 
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                    className="group bg-zinc-900/30 border border-white/5 rounded-[35px] md:rounded-[45px] p-4 md:p-6 hover:bg-zinc-900/50 transition-all duration-700 flex flex-col shadow-2xl relative overflow-hidden backdrop-blur-sm animate-reveal-up fill-mode-both"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                    className="group bg-zinc-900/30 border border-white/5 rounded-[20px] md:rounded-[45px] p-3 md:p-6 hover:bg-zinc-900/50 transition-all duration-700 flex flex-col shadow-2xl relative overflow-hidden backdrop-blur-sm animate-reveal-up fill-mode-both"
                   >
-                    <div className="relative aspect-square bg-black/40 rounded-[25px] md:rounded-[35px] mb-6 overflow-hidden border border-white/5">
+                    <div className="relative aspect-square bg-black/40 rounded-[15px] md:rounded-[35px] mb-3 md:mb-6 overflow-hidden border border-white/5">
                       <img src={p.image || "https://via.placeholder.com/400"} alt={p.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0" />
-                      <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md text-amber-500 text-[8px] font-black px-3 py-1.5 rounded-full uppercase italic border border-amber-500/20">
+                      <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-md text-amber-500 text-[6px] md:text-[8px] font-black px-2 py-1 rounded-full uppercase italic border border-amber-500/20">
                         {p.brand}
                       </div>
                     </div>
                     <div className="flex-1 px-1">
-                      <p className="text-amber-500 text-[9px] font-black mb-2 uppercase tracking-[0.2em] italic flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span> {p.category}
+                      <p className="text-amber-500 text-[7px] md:text-[9px] font-black mb-1 md:mb-2 uppercase tracking-[0.2em] italic flex items-center gap-1">
+                        <span className="w-1 h-1 bg-amber-500 rounded-full"></span> {p.category}
                       </p>
-                      <h3 className="text-sm md:text-lg font-black text-white mb-4 leading-tight uppercase italic group-hover:text-amber-500 transition-colors line-clamp-2 h-10 md:h-14">
+                      <h3 className="text-[10px] md:text-lg font-black text-white mb-2 md:mb-4 leading-tight uppercase italic group-hover:text-amber-500 transition-colors line-clamp-2 h-7 md:h-14">
                         {p.name}
                       </h3>
-                      <p className="text-lg md:text-2xl font-black italic tracking-tighter mb-6 pt-4 border-t border-white/5">
+                      <p className="text-xs md:text-2xl font-black italic tracking-tighter mb-3 md:mb-6 pt-2 md:pt-4 border-t border-white/5">
                         LKR {p.price.toLocaleString()}
                       </p>
                     </div>
-                    <button onClick={() => addToCart(p)} className="w-full bg-white text-black py-4 md:py-5 rounded-[20px] md:rounded-[25px] font-black flex items-center justify-center gap-3 hover:bg-amber-500 transition-all active:scale-95 uppercase italic text-[10px] md:text-[11px] tracking-widest shadow-xl">
-                      <ShoppingCart size={16} /> Add To Cart
+                    <button onClick={() => addToCart(p)} className="w-full bg-white text-black py-3 md:py-5 rounded-[12px] md:rounded-[25px] font-black flex items-center justify-center gap-2 hover:bg-amber-500 transition-all active:scale-95 uppercase italic text-[8px] md:text-[11px] tracking-widest shadow-xl">
+                      <ShoppingCart size={14} className="md:w-4 md:h-4" /> Add To Cart
                     </button>
                   </div>
                 ))
@@ -215,20 +215,20 @@ export default function ShopPage({ cart, setCart }) {
           </main>
         </div>
 
-{/* SOCIAL MENU */}
-      <div className="fixed bottom-6 right-6 z-[100]">
-        {isSocialOpen && (
-          <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
-            <a href="https://maps.app.goo.gl/eGEG6g1KRz5un6R87" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
-            <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
-            <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
-            <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
-          </div>
-        )}
-        <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
-          {isSocialOpen ? <X size={26} /> : <Share2 size={26} />}
-        </button>
-      </div>
+        {/* SOCIAL MENU */}
+        <div className="fixed bottom-6 right-6 z-[100]">
+          {isSocialOpen && (
+            <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
+              <a href="https://maps.app.goo.gl/eGEG6g1KRz5un6R87" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
+              <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
+              <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
+              <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
+            </div>
+          )}
+          <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
+            {isSocialOpen ? <X size={26} /> : <Share2 size={26} />}
+          </button>
+        </div>
 
       </div>
 
