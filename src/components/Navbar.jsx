@@ -1,4 +1,4 @@
-import { ShoppingCart, Menu, X, Package, Wrench, Home, Shield, User, LogOut } from "lucide-react";
+import { ShoppingCart, Menu, X, Package, Wrench, Home, Shield, User, LogOut, LayoutGrid } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
 
@@ -7,7 +7,6 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
   const [user, setUser] = useState(null);
   const auth = getAuth();
 
-  // යූසර් ලොග් වෙලාද කියලා හැමතිස්සෙම චෙක් කරනවා
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -26,6 +25,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
 
   const handleLogout = async () => {
     await signOut(auth);
+    setPage("home"); // Logout වුණාම home එකට යවනවා
   };
 
   const navItems = [
@@ -41,7 +41,6 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
 
   return (
     <>
-      {/* Desktop Navbar - w-full සහ px පාවිච්චි කරලා දෙපැත්තේ ඉඩ අයින් කරා */}
       <nav className="bg-black/20 backdrop-blur-md text-white border-b-2 border-white sticky top-0 z-50 w-full">
         <div className="w-full px-4 lg:px-8 py-5">
           <div className="flex justify-between items-center">
@@ -100,21 +99,28 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
               {/* --- LOGIN / USER PROFILE SECTION --- */}
               <div className="ml-2 border-l border-white/20 pl-4">
                 {user ? (
-                  <div className="flex items-center gap-3 bg-zinc-900/80 p-1.5 pr-4 rounded-2xl border border-white/10 group">
-                    <img 
-                        src={user.photoURL} 
-                        className="w-9 h-9 rounded-xl border-2 border-amber-500 group-hover:scale-110 transition-transform" 
-                        alt="profile" 
-                    />
-                    <div className="flex flex-col">
-                        <span className="text-[9px] text-zinc-500 font-black uppercase italic leading-none">Account</span>
-                        <span className="text-[11px] font-black italic text-white uppercase truncate max-w-[80px]">
-                            {user.displayName.split('')[0]}
-                        </span>
+                  <div className="flex items-center gap-3 bg-zinc-900/80 p-1.5 pr-2 rounded-2xl border border-white/10 group transition-all hover:border-amber-500/50">
+                    {/* User Info & Link to My Builds */}
+                    <div 
+                      className="flex items-center gap-3 cursor-pointer px-2"
+                      onClick={() => handleNavClick("mybuilds")}
+                    >
+                      <img 
+                          src={user.photoURL} 
+                          className="w-9 h-9 rounded-xl border-2 border-amber-500 group-hover:scale-110 transition-transform" 
+                          alt="profile" 
+                      />
+                      <div className="flex flex-col">
+                          <span className="text-[9px] text-zinc-500 font-black uppercase italic leading-none">Welcome,</span>
+                          <span className="text-[11px] font-black italic text-white uppercase truncate max-w-[80px] group-hover:text-amber-500 transition-colors">
+                              {user.displayName ? user.displayName.split(' ')[0] : 'User'}
+                          </span>
+                      </div>
                     </div>
+                    
                     <button 
                         onClick={handleLogout}
-                        className="ml-2 p-2 hover:bg-red-500/20 text-red-500 rounded-lg transition-all"
+                        className="p-2 hover:bg-red-500/20 text-red-500 rounded-lg transition-all"
                         title="Logout"
                     >
                         <LogOut size={16}/>
@@ -134,7 +140,11 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
 
             {/* Mobile Menu Button */}
             <div className="flex items-center gap-4 md:hidden">
-                {user && <img src={user.photoURL} className="w-9 h-9 rounded-full border-2 border-amber-500" alt="profile" />}
+                {user && (
+                  <button onClick={() => handleNavClick("mybuilds")}>
+                    <img src={user.photoURL} className="w-9 h-9 rounded-full border-2 border-amber-500" alt="profile" />
+                  </button>
+                )}
                 <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 hover:bg-white hover:text-black transition-all rounded-lg border-2 border-white"
@@ -170,11 +180,23 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
               );
             })}
 
+            {/* My Builds Link (Mobile) */}
+            {user && (
+               <button
+                  onClick={() => handleNavClick("mybuilds")}
+                  className={`w-full max-w-sm flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-xl transition-all border-2 italic uppercase ${
+                    currentPage === "mybuilds" ? "bg-amber-500 text-black border-amber-500" : "bg-black text-amber-500 border-amber-500/30"
+                  }`}
+               >
+                  <LayoutGrid size={24} /> My Saved Builds
+               </button>
+            )}
+
             {/* Mobile Login/Logout */}
             {!user ? (
                 <button
                     onClick={handleGoogleLogin}
-                    className="w-full max-w-sm flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-xl bg-amber-500 text-black border-2 border-amber-500 italic uppercase"
+                    className="w-full max-w-sm flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-xl bg-white text-black border-2 border-white italic uppercase"
                 >
                     <User size={24} /> Login with Google
                 </button>
@@ -183,7 +205,7 @@ export default function Navbar({ setPage, cartCount, currentPage }) {
                     onClick={handleLogout}
                     className="w-full max-w-sm flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-black text-xl bg-red-500/20 text-red-500 border-2 border-red-500 italic uppercase"
                 >
-                    <LogOut size={24} /> Logout ({user.displayName.split(' ')[0]})
+                    <LogOut size={24} /> Logout ({user.displayName ? user.displayName.split(' ')[0] : 'User'})
                 </button>
             )}
 
