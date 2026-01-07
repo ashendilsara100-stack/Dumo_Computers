@@ -64,7 +64,7 @@ const PCBuilder = ({ cart, setCart }) => {
 
   const showToast = (msg, borderColor) => {
     const t = document.createElement('div');
-    t.className = `fixed top-24 right-6 bg-black text-white px-8 py-4 rounded-2xl shadow-2xl z-50 animate-bounce font-black border-2 ${borderColor}`;
+    t.className = `fixed top-24 right-6 bg-black text-white px-8 py-4 rounded-2xl shadow-2xl z-[150] animate-bounce font-black border-2 ${borderColor}`;
     t.innerHTML = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
@@ -203,15 +203,16 @@ const PCBuilder = ({ cart, setCart }) => {
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 relative">
         <SpaceBackground />
-        <div className="relative pt-32 pb-16 px-6 border-b border-white/5 bg-black/40 backdrop-blur-md z-10">
-            <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-8 animate-reveal-up">
+        {/* UPDATED HEADER: added sticky, top-0, z-index and bg blur */}
+        <div className="sticky top-0 z-50 pt-32 pb-16 px-6 border-b border-white/5 bg-black/60 backdrop-blur-xl">
+            <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center lg:items-end gap-8 animate-reveal-up">
                 <div>
                     <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] tracking-[0.4em] mb-4 uppercase italic">
                         <Activity size={14} className="animate-pulse" /> Compatibility Engine Active
                     </div>
-                    <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter leading-none uppercase">PC BUILDER</h1>
+                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none uppercase">PC BUILDER</h1>
                 </div>
-                <div className="bg-zinc-900/80 border border-white/10 p-8 rounded-[40px] min-w-[350px] backdrop-blur-xl">
+                <div className="bg-zinc-900/90 border border-white/10 p-8 rounded-[40px] min-w-[350px] backdrop-blur-xl shadow-2xl">
                     <p className="text-zinc-500 font-black text-[10px] uppercase mb-1 italic">Total Estimate</p>
                     <p className="text-5xl font-black text-amber-500 italic">LKR {totalPrice.toLocaleString()}</p>
                 </div>
@@ -266,7 +267,8 @@ const PCBuilder = ({ cart, setCart }) => {
                     })}
                 </div>
 
-                <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit">
+                {/* UPDATED SIDEBAR: Added lg:top-48 to prevent sticking to the top edge during scroll */}
+                <div className="lg:col-span-4 lg:sticky lg:top-48 h-fit">
                     <div className="bg-zinc-900/60 border border-white/10 rounded-[45px] p-8 backdrop-blur-3xl shadow-3xl animate-reveal-right">
                         <h2 className="text-2xl font-black italic mb-8 uppercase tracking-tighter flex items-center gap-3">
                             <Box className="text-amber-500" /> Build Log
