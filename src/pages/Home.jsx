@@ -32,7 +32,7 @@ export default function Home({ setPage, cart, setCart }) {
 
   // --- Firebase Data Fetching ---
   useEffect(() => {
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(4));
+    const q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(6));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setProducts(productsData);
