@@ -6,8 +6,8 @@ import {
   CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2, Facebook, X, Music2, MapPinned 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import SpaceBackground from "../components/SpaceBackground"; // Space Background එක
+import 'jspdf-autotable';
+import SpaceBackground from "../components/SpaceBackground";
 
 const PCBuilder = ({ cart, setCart }) => {
   const [products, setProducts] = useState([]);
@@ -15,7 +15,6 @@ const PCBuilder = ({ cart, setCart }) => {
     cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooling: null
   });
   const [totalPrice, setTotalPrice] = useState(0);
-
   const [isSocialOpen, setIsSocialOpen] = useState(false);
 
   useEffect(() => {
@@ -31,7 +30,6 @@ const PCBuilder = ({ cart, setCart }) => {
     setTotalPrice(total);
   }, [selectedComponents]);
 
-  // --- COMPATIBILITY ENGINE ---
   const getFilteredItems = (category) => {
     let items = products.filter(p => p.category?.toLowerCase().trim() === category.toLowerCase());
     if (category === 'motherboard' && selectedComponents.cpu) {
@@ -67,16 +65,7 @@ const PCBuilder = ({ cart, setCart }) => {
     setTimeout(() => t.remove(), 3000);
   };
 
-  const handleShareBuild = () => {
-    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
-    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
-    const buildText = `🖥️ *DUMO PC BUILD SUMMARY*\n` +
-      selectedItems.map(([cat, comp]) => `• *${componentLabels[cat]}*: ${comp.name}`).join('\n') +
-      `\n💰 *Total: LKR ${totalPrice.toLocaleString()}*`;
-    navigator.clipboard.writeText(buildText).then(() => showToast("BUILD COPIED!", "border-green-500"));
-  };
-
- const handleDownloadQuotation = () => {
+  const handleDownloadQuotation = () => {
     const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
     if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
 
@@ -84,7 +73,7 @@ const PCBuilder = ({ cart, setCart }) => {
     const date = new Date().toLocaleDateString();
     const quoteNo = `DQ-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // --- HEADER SECTION ---
+    // --- HEADER DESIGN (Original Dumo Style) ---
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.text("DUMO COMPUTERS WELIWERIYA", 105, 20, { align: "center" });
@@ -94,21 +83,20 @@ const PCBuilder = ({ cart, setCart }) => {
     doc.text("No. 502/1/B, Kandy Road, Weliweriya.", 105, 26, { align: "center" });
     doc.text("Tel: 074 229 9006 | Email: dumocomputers@gmail.com", 105, 31, { align: "center" });
 
-    // --- QUOTE INFO ---
     doc.setDrawColor(200);
-    doc.line(14, 38, 196, 38); // Line
+    doc.line(14, 38, 196, 38);
 
     doc.setFont("helvetica", "bold");
     doc.text(`Quote No: ${quoteNo}`, 14, 45);
     doc.text(`Date: ${date}`, 196, 45, { align: "right" });
     doc.text(`Customer: Cash Customer`, 14, 52);
     
-    doc.line(14, 58, 196, 58); // Line
+    doc.line(14, 58, 196, 58);
 
-    // --- TABLE SECTION ---
     doc.setFontSize(14);
     doc.text("QUOTATION", 14, 68);
 
+    // --- TABLE DATA ---
     const tableRows = selectedItems.map(([cat, comp], index) => [
       index + 1,
       `${componentLabels[cat].toUpperCase()} - ${comp.name}`,
@@ -117,12 +105,12 @@ const PCBuilder = ({ cart, setCart }) => {
       Number(comp.sellingPrice).toLocaleString('.00')
     ]);
 
-    autoTable(doc, {
+    doc.autoTable({
       startY: 75,
       head: [['#', 'PRODUCT DESCRIPTION', 'QTY', 'UNIT PRICE', 'SUBTOTAL']],
       body: tableRows,
       theme: 'grid',
-      headStyles: { fillColor: [40, 40, 40], textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 9, cellPadding: 3 },
       columnStyles: {
         0: { cellWidth: 10 },
@@ -133,33 +121,39 @@ const PCBuilder = ({ cart, setCart }) => {
       },
     });
 
-    // --- TOTAL SECTION ---
+    // --- TOTALS ---
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFont("helvetica", "bold");
     doc.text(`Subtotal: LKR ${totalPrice.toLocaleString('.00')}`, 196, finalY, { align: "right" });
     doc.setFontSize(12);
-    doc.text(`Total Amount: LKR ${totalPrice.toLocaleString('.00')}`, 196, finalY + 7, { align: "right" });
+    doc.text(`Total Amount: LKR ${totalPrice.toLocaleString('.00')}`, 196, finalY + 8, { align: "right" });
 
-    // --- TERMS & CONDITIONS ---
+    // --- TERMS ---
     const termsY = finalY + 25;
     doc.setFontSize(10);
     doc.text("Terms & Conditions:", 14, termsY);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     const terms = [
-      "* Prices & subject to change without prior notice.",
+      "* Prices subject to change without prior notice.",
       "* All prices are subject for all exchange.",
-      "* Warranty: 03-36 Months warranty for components (based on item).",
+      "* Warranty: 03-36 Months warranty for components (item based).",
       "* Physical damages and burn marks void warranty.",
       "THANK YOU FOR YOUR BUSINESS!"
     ];
-    terms.forEach((line, i) => {
-      doc.text(line, 14, termsY + 6 + (i * 4));
-    });
+    terms.forEach((line, i) => doc.text(line, 14, termsY + 6 + (i * 4)));
 
-    // --- SAVE PDF ---
     doc.save(`DUMO_QUOTATION_${quoteNo}.pdf`);
     showToast("QUOTATION DOWNLOADED!", "border-green-500");
+  };
+
+  const handleShareBuild = () => {
+    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+    const buildText = `🖥️ *DUMO PC BUILD SUMMARY*\n` +
+      selectedItems.map(([cat, comp]) => `• *${componentLabels[cat]}*: ${comp.name}`).join('\n') +
+      `\n💰 *Total: LKR ${totalPrice.toLocaleString()}*`;
+    navigator.clipboard.writeText(buildText).then(() => showToast("BUILD COPIED!", "border-green-500"));
   };
 
   const handleWhatsApp = () => {
@@ -173,9 +167,9 @@ const PCBuilder = ({ cart, setCart }) => {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 relative">
-      <SpaceBackground /> {/* Background එක මෙතන තියෙන්නේ */}
-
-      {/* HEADER SECTION WITH REVEAL */}
+      <SpaceBackground />
+      
+      {/* HEADER SECTION */}
       <div className="relative pt-32 pb-16 px-6 border-b border-white/5 bg-black/40 backdrop-blur-md z-10">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-8 animate-reveal-up">
           <div>
@@ -193,6 +187,7 @@ const PCBuilder = ({ cart, setCart }) => {
 
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
           {/* COMPONENTS LIST */}
           <div className="lg:col-span-8 space-y-6">
             {Object.keys(componentLabels).map((cat, index) => {
@@ -246,7 +241,7 @@ const PCBuilder = ({ cart, setCart }) => {
             })}
           </div>
 
-          {/* SIDEBAR LOG */}
+          {/* SIDEBAR */}
           <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit">
             <div className="bg-zinc-900/60 border border-white/10 rounded-[45px] p-8 backdrop-blur-3xl shadow-3xl animate-reveal-right">
               <h2 className="text-2xl font-black italic mb-8 uppercase tracking-tighter flex items-center gap-3">
@@ -270,7 +265,7 @@ const PCBuilder = ({ cart, setCart }) => {
                   <FileDown size={18} /> Download Quote
                 </button>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={handleWhatsApp} className="bg-green-600 text-white py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg shadow-green-600/10"><MessageCircle size={16} /> WhatsApp</button>
+                  <button onClick={handleWhatsApp} className="bg-green-600 text-white py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg"><MessageCircle size={16} /> WhatsApp</button>
                   <button onClick={() => { setCart([...cart, ...Object.values(selectedComponents).filter(c => c)]); showToast("ADDED TO CART!", "border-amber-500")}} className="bg-white text-black py-4 rounded-[22px] font-black text-[9px] flex items-center justify-center gap-2 tracking-widest uppercase italic shadow-lg"><ShoppingCart size={16} /> Add All</button>
                 </div>
               </div>
@@ -279,35 +274,28 @@ const PCBuilder = ({ cart, setCart }) => {
         </div>
       </div>
 
+      {/* SOCIALS & STYLES (same as before) */}
       <style jsx>{`
-        @keyframes reveal-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes reveal-right {
-          from { opacity: 0; transform: translateX(30px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes reveal-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes reveal-right { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
         .animate-reveal-up { animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .animate-reveal-right { animation: reveal-right 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .fill-mode-both { animation-fill-mode: both; }
       `}</style>
 
-{/* SOCIAL MENU */}
       <div className="fixed bottom-6 right-6 z-[100]">
         {isSocialOpen && (
           <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
-            <a href="https://maps.app.goo.gl/eGEG6g1KRz5un6R87" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MapPinned size={20}/></a>
-            <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Facebook size={20}/></a>
-            <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><Music2 size={20}/></a>
-            <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all shadow-xl text-white"><MessageCircle size={20}/></a>
+            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 text-white"><MapPinned size={20}/></a>
+            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 text-white"><Facebook size={20}/></a>
+            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 text-white"><Music2 size={20}/></a>
+            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 text-white"><MessageCircle size={20}/></a>
           </div>
         )}
-        <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
+        <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl transition-all">
           {isSocialOpen ? <X size={26} /> : <Share2 size={26} />}
         </button>
       </div>
-
     </div>
   );
 };
