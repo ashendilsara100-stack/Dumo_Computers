@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from "../firebase/config";
-import { collection, onSnapshot, doc, runTransaction } from "firebase/firestore"; // Transaction ඇතුළත් කළා
+import { collection, onSnapshot, doc, runTransaction, addDoc } from "firebase/firestore";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth"; // Auth එකතු කළා
 import { 
   Cpu, HardDrive, Zap, Box, Fan, Monitor, ShoppingCart, 
   CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2, Facebook, X, Music2, MapPinned 
@@ -12,11 +13,22 @@ import SpaceBackground from "../components/SpaceBackground";
 
 const PCBuilder = ({ cart, setCart }) => {
   const [products, setProducts] = useState([]);
+  const [user, setUser] = useState(null); // ලොග් වුණ යූසර්ව තියාගන්න
   const [selectedComponents, setSelectedComponents] = useState({
     cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooling: null
   });
   const [totalPrice, setTotalPrice] = useState(0);
   const [isSocialOpen, setIsSocialOpen] = useState(false);
+
+  const auth = getAuth();
+
+  // යූසර් ලොග් වෙලාද නැද්ද කියලා හැමතිස්සෙම චෙක් කරනවා
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, [auth]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "products"), (snap) => {
@@ -30,6 +42,45 @@ const PCBuilder = ({ cart, setCart }) => {
       sum + (Number(component?.sellingPrice) || 0), 0);
     setTotalPrice(total);
   }, [selectedComponents]);
+
+  // --- SAVE BUILD LOGIC ---
+  const handleSaveBuild = async () => {
+    let currentUser = user;
+
+    // 1. ලොග් වෙලා නැත්නම් ලොගින් එක ඉල්ලනවා
+    if (!currentUser) {
+      const provider = new GoogleAuthProvider();
+      try {
+        const result = await signInWithPopup(auth, provider);
+        currentUser = result.user;
+        showToast(`WELCOME ${currentUser.displayName.toUpperCase()}!`, "border-green-500");
+      } catch (error) {
+        showToast("LOGIN FAILED!", "border-red-500");
+        return;
+      }
+    }
+
+    // 2. අයිටම්ස් තෝරලා නැත්නම් සේව් කරන්න දෙන්න එපා
+    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+
+    // 3. Firestore එකට බිල්ඩ් එක සේව් කරනවා
+    try {
+      await addDoc(collection(db, "savedBuilds"), {
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        userEmail: currentUser.email,
+        buildName: `Build - ${new Date().toLocaleDateString()}`,
+        components: selectedComponents,
+        totalPrice: totalPrice,
+        createdAt: new Date()
+      });
+      showToast("BUILD SAVED TO YOUR ACCOUNT!", "border-green-500");
+    } catch (e) {
+      console.error("Save error:", e);
+      showToast("ERROR SAVING BUILD", "border-red-500");
+    }
+  };
 
   const formatCurrency = (num) => {
     return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
@@ -70,13 +121,11 @@ const PCBuilder = ({ cart, setCart }) => {
     setTimeout(() => t.remove(), 3000);
   };
 
-  // --- PDF GENERATION WITH REAL SEQUENTIAL BARCODE ---
   const handleDownloadQuotation = async () => {
     try {
       const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
       if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
 
-      // 1. GET SEQUENTIAL NUMBER FROM FIREBASE (TRANSACTION)
       const counterRef = doc(db, "settings", "quotationCounter");
       let nextNo;
 
@@ -89,35 +138,24 @@ const PCBuilder = ({ cart, setCart }) => {
         });
       } catch (e) {
         console.error("Counter Error:", e);
-        nextNo = Math.floor(1000 + Math.random() * 9000); // Fallback if DB fails
+        nextNo = Math.floor(1000 + Math.random() * 9000);
       }
 
       const docPdf = new jsPDF();
       const now = new Date();
       const dateStr = now.toLocaleDateString('en-GB'); 
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      
-      // Professional Quote No: Year/Month/SequentialID
       const quoteNo = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${nextNo}`;
 
-      // 2. Generate Barcode
       const canvas = document.createElement('canvas');
-      JsBarcode(canvas, quoteNo, {
-        format: "CODE128",
-        lineColor: "#000",
-        width: 1.5,
-        height: 40,
-        displayValue: false
-      });
+      JsBarcode(canvas, quoteNo, { format: "CODE128", displayValue: false });
       const barcodeImg = canvas.toDataURL("image/png");
 
-      // --- PDF DESIGN ---
       docPdf.setFont("helvetica", "bold");
       docPdf.setFontSize(40);
       docPdf.text("DUMO", 15, 25);
       docPdf.setFontSize(10);
       docPdf.text("C O M P U T E R S", 15, 31);
-      docPdf.setLineWidth(0.5);
       docPdf.line(70, 15, 70, 35);
 
       docPdf.setFont("helvetica", "normal");
@@ -125,18 +163,6 @@ const PCBuilder = ({ cart, setCart }) => {
       docPdf.text("DUMO COMPUTERS WELIWERIYA", 195, 20, { align: "right" });
       docPdf.setFontSize(8);
       docPdf.text("NO. 302/6, NEW KANDY ROAD, WELIWERIYA", 195, 25, { align: "right" });
-      docPdf.text("011 3692106 / 074 2299006", 195, 29, { align: "right" });
-      docPdf.text("dumocomputers@gmail.com", 195, 33, { align: "right" });
-      docPdf.text("www.dumo.lk", 195, 37, { align: "right" });
-
-      docPdf.setFontSize(10);
-      docPdf.text(`ID: ${quoteNo}`, 15, 55);
-      docPdf.text("Customer", 15, 60);
-      docPdf.setFont("helvetica", "bold");
-      docPdf.text("QUOTATION", 15, 65);
-      docPdf.setFont("helvetica", "normal");
-      docPdf.text("Mobile: -", 15, 70);
-      docPdf.text(`Date ${dateStr} ${timeStr}`, 195, 55, { align: "right" });
 
       const tableRows = [];
       selectedItems.forEach(([cat, comp]) => {
@@ -151,33 +177,11 @@ const PCBuilder = ({ cart, setCart }) => {
         theme: 'plain',
         headStyles: { fontStyle: 'bold', textColor: [0, 0, 0], lineWidth: { bottom: 0.5 }, lineColor: [0, 0, 0] },
         styles: { fontSize: 9, cellPadding: 2 },
-        columnStyles: { 0: { cellWidth: 100 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
       });
-
-      let finalY = docPdf.lastAutoTable.finalY + 10;
-      docPdf.setFont("helvetica", "bold");
-      docPdf.text("Subtotal:", 140, finalY);
-      docPdf.text(`Rs ${formatCurrency(totalPrice)}`, 195, finalY, { align: "right" });
-      docPdf.setFont("helvetica", "normal");
-      docPdf.text("Discount:", 140, finalY + 6);
-      docPdf.text("(-) Rs 0.00", 195, finalY + 6, { align: "right" });
-      
-      docPdf.setFillColor(245, 245, 245);
-      docPdf.rect(135, finalY + 9, 65, 8, 'F');
-      docPdf.setFont("helvetica", "bold");
-      docPdf.text("Total:", 140, finalY + 15);
-      docPdf.text(`Rs ${formatCurrency(totalPrice)}`, 195, finalY + 15, { align: "right" });
-
-      // FOOTER BARCODE
-      const footerY = 272;
-      docPdf.addImage(barcodeImg, 'PNG', 70, footerY, 70, 12);
-      docPdf.setFontSize(9);
-      docPdf.text(quoteNo, 105, footerY + 18, { align: "center" });
 
       docPdf.save(`DUMO_QUOTATION_${quoteNo.replace(/\//g, '-')}.pdf`);
       showToast("QUOTATION DOWNLOADED!", "border-green-500");
     } catch (error) {
-      console.error("PDF Error:", error);
       showToast("ERROR GENERATING PDF", "border-red-500");
     }
   };
@@ -203,7 +207,7 @@ const PCBuilder = ({ cart, setCart }) => {
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 relative">
         <SpaceBackground />
-        {/* UPDATED HEADER: added sticky, top-0, z-index and bg blur */}
+        
         <div className="sticky top-0 z-50 pt-16 pb-16 px-6 border-b border-white/5 bg-black/60 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center lg:items-end gap-8 animate-reveal-up">
                 <div>
@@ -267,7 +271,6 @@ const PCBuilder = ({ cart, setCart }) => {
                     })}
                 </div>
 
-                {/* UPDATED SIDEBAR: Added lg:top-48 to prevent sticking to the top edge during scroll */}
                 <div className="lg:col-span-4 lg:sticky lg:top-48 h-fit">
                     <div className="bg-zinc-900/60 border border-white/10 rounded-[45px] p-8 backdrop-blur-3xl shadow-3xl animate-reveal-right">
                         <h2 className="text-2xl font-black italic mb-8 uppercase tracking-tighter flex items-center gap-3">
@@ -284,6 +287,11 @@ const PCBuilder = ({ cart, setCart }) => {
                             ))}
                         </div>
                         <div className="space-y-3">
+                            {/* --- SAVE BUILD BUTTON --- */}
+                            <button onClick={handleSaveBuild} className="w-full bg-amber-500 text-black py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-amber-400 transition-all text-[10px] tracking-[0.2em] uppercase italic shadow-xl shadow-amber-500/20 mb-2">
+                                <Activity size={18} /> Save Build
+                            </button>
+
                             <button onClick={handleShareBuild} className="w-full bg-zinc-800 text-white py-5 rounded-[22px] font-black flex items-center justify-center gap-3 hover:bg-zinc-700 transition-all text-[10px] tracking-[0.2em] uppercase italic border border-white/10 shadow-xl">
                                 <Share2 size={18} /> Share Build
                             </button>
