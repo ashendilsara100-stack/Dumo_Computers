@@ -204,7 +204,7 @@ const PCBuilder = ({ cart, setCart }) => {
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 relative">
         <SpaceBackground />
         {/* UPDATED HEADER: added sticky, top-0, z-index and bg blur */}
-        <div className="sticky top-0 z-50 pt-20 pb-16 px-6 border-b border-white/5 bg-black/60 backdrop-blur-xl">
+        <div className="sticky top-0 z-50 pt-16 pb-16 px-6 border-b border-white/5 bg-black/60 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center lg:items-end gap-8 animate-reveal-up">
                 <div>
                     <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] tracking-[0.4em] mb-4 uppercase italic">
