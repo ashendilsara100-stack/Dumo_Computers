@@ -102,7 +102,7 @@ export default function Home({ setPage, cart, setCart }) {
           </h2>
 
           {/* grid-cols-3 (mobile), md:grid-cols-3 (tablet), lg:grid-cols-4 (desktop), xl:grid-cols-5 (wide) */}
-          <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-8">
+          <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 md:gap-8">
             {products.length > 0 ? products.map((p, i) => (
               <div
                 key={p.id}
