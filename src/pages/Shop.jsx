@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { ShoppingCart, Search, Package, ChevronRight, Coins, LayoutGrid, Share2, Facebook, MessageCircle, X, Music2, MapPinned, Filter } from "lucide-react";
+import { ShoppingCart, Search, Package, ChevronRight, Coins, LayoutGrid, Share2, Facebook, MessageCircle, X, Music2, MapPinned, Filter, ArrowRight } from "lucide-react";
 import SpaceBackground from "../components/SpaceBackground";
 
 const categorySynonyms = {
@@ -103,10 +103,9 @@ export default function ShopPage({ cart, setCart }) {
 
       <div className="relative z-10">
 
-        {/* මම මෙතන max-w-7xl අයින් කරලා සම්පූර්ණ පළල ගත්තා (Full Width) */}
         <div className="w-full max-w-[100%] mx-auto px-2 md:px-8 py-8 flex flex-col lg:flex-row gap-8 md:gap-12 items-start">
 
-          {/* SIDEBAR */}
+          {/* DESKTOP SIDEBAR */}
           <aside className="hidden lg:block w-80 lg:sticky lg:top-24 z-20 space-y-6 animate-reveal-left">
             <div className="bg-zinc-900/60 p-6 md:p-8 rounded-[35px] border border-white/5 backdrop-blur-xl shadow-2xl">
               <h3 className="text-[10px] font-black mb-6 tracking-[0.2em] text-amber-500 uppercase italic flex items-center gap-2">
@@ -147,24 +146,45 @@ export default function ShopPage({ cart, setCart }) {
           <main className="flex-1 w-full">
             <div className="sticky top-20 lg:top-24 z-30 pb-6 animate-reveal-up space-y-4">
 
-              <div className="lg:hidden flex overflow-x-auto gap-2 no-scrollbar pb-2">
+              {/* MOBILE CATEGORIES SCROLL */}
+              <div className="lg:hidden flex overflow-x-auto gap-2 no-scrollbar pb-1">
                 <button
                   onClick={() => setSelectedCategory("All")}
-                  className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedCategory === "All" ? "bg-amber-500 text-black border-amber-500" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
+                  className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedCategory === "All" ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
                 >
-                  All
+                  All Components
                 </button>
                 {categories.map(cat => (
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.name)}
-                    className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedCategory === cat.name ? "bg-amber-500 text-black border-amber-500" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
+                    className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedCategory === cat.name ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
                   >
                     {cat.name}
                   </button>
                 ))}
               </div>
 
+              {/* MOBILE BRANDS SCROLL */}
+              <div className="lg:hidden flex overflow-x-auto gap-2 no-scrollbar pb-2">
+                <button
+                  onClick={() => setSelectedBrand("All")}
+                  className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedBrand === "All" ? "bg-amber-500 text-black border-amber-500" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
+                >
+                  All Brands
+                </button>
+                {brands.map(brand => (
+                  <button
+                    key={brand.id}
+                    onClick={() => setSelectedBrand(brand.name)}
+                    className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[9px] font-black uppercase italic border tracking-widest transition-all ${selectedBrand === brand.name ? "bg-amber-500 text-black border-amber-500" : "bg-zinc-900 text-zinc-400 border-white/5"}`}
+                  >
+                    {brand.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* SEARCH & SORT BOX */}
               <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center bg-black/80 backdrop-blur-2xl p-3 md:p-4 rounded-[30px] md:rounded-[40px] border border-white/10 shadow-2xl">
                 <div className="relative flex-1 w-full flex items-center gap-3">
                   <div className="relative flex-1">
@@ -194,7 +214,7 @@ export default function ShopPage({ cart, setCart }) {
               </div>
             </div>
 
-            {/* PRODUCT GRID - Mobile එකේ 4යි, Screen ලොකු වෙනකොට auto වැඩි වෙනවා */}
+            {/* PRODUCT GRID */}
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 md:gap-8">
               {loading ? (
                 [1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonCard key={i} />)
@@ -205,8 +225,6 @@ export default function ShopPage({ cart, setCart }) {
                     style={{ animationDelay: `${index * 0.05}s` }}
                     className="group bg-zinc-900/30 border border-white/5 rounded-[12px] md:rounded-[45px] p-1.5 md:p-6 hover:bg-zinc-900/50 transition-all duration-700 flex flex-col shadow-2xl relative overflow-hidden backdrop-blur-sm animate-reveal-up fill-mode-both"
                   >
-                    {/* ... ඔයාගේ ඉතිරි product card code එක එලෙසම තියන්න ... */}
-
                     <div className="relative aspect-square bg-black/40 rounded-[8px] md:rounded-[35px] mb-1.5 md:mb-6 overflow-hidden border border-white/5">
                       <img src={p.image || "https://via.placeholder.com/400"} alt={p.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0" />
                       <div className="absolute top-1 left-1 bg-black/80 backdrop-blur-md text-amber-500 text-[4px] md:text-[8px] font-black px-1 py-0.5 rounded-full uppercase italic border border-amber-500/20">
@@ -251,25 +269,13 @@ export default function ShopPage({ cart, setCart }) {
                 <h2 className="text-lg font-black italic uppercase tracking-widest text-amber-500">Filters</h2>
                 <button onClick={() => setIsFilterOpen(false)} className="text-zinc-500"><X /></button>
               </div>
-
               <div className="space-y-12">
                 <div className="space-y-6">
                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-500 uppercase italic">Budget (LKR)</h3>
                   <input type="range" min="0" max="1000000" step="5000" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} className="w-full h-1.5 bg-zinc-800 rounded-lg accent-amber-500" />
                   <div className="text-white font-black italic text-xl">LKR {Number(priceRange).toLocaleString()}</div>
                 </div>
-
-                <div className="space-y-6">
-                  <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-500 uppercase italic">Brands</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setSelectedBrand("All")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic ${selectedBrand === "All" ? "bg-amber-500 text-black" : "bg-white/5 text-zinc-500"}`}>All Brands</button>
-                    {brands.map(brand => (
-                      <button key={brand.id} onClick={() => setSelectedBrand(brand.name)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic ${selectedBrand === brand.name ? "bg-amber-500 text-black" : "bg-white/5 text-zinc-500"}`}>{brand.name}</button>
-                    ))}
-                  </div>
-                </div>
               </div>
-
               <button onClick={() => setIsFilterOpen(false)} className="w-full mt-12 bg-white text-black py-5 rounded-2xl font-black uppercase italic tracking-widest">Show Results</button>
             </div>
           </div>
@@ -289,7 +295,6 @@ export default function ShopPage({ cart, setCart }) {
             {isSocialOpen ? <X size={26} /> : <Share2 size={26} />}
           </button>
         </div>
-
       </div>
 
       <style jsx>{`
