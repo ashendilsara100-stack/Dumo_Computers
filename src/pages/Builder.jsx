@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { db } from "../firebase/config";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, doc, runTransaction } from "firebase/firestore"; // Transaction ඇතුළත් කළා
 import { 
   Cpu, HardDrive, Zap, Box, Fan, Monitor, ShoppingCart, 
   CheckCircle, AlertCircle, Trash2, Activity, FileDown, MessageCircle, Share2, Facebook, X, Music2, MapPinned 
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import JsBarcode from 'jsbarcode'; // මෙය අලුතින් එකතු කළා
+import JsBarcode from 'jsbarcode';
 import SpaceBackground from "../components/SpaceBackground";
 
 const PCBuilder = ({ cart, setCart }) => {
@@ -70,21 +70,37 @@ const PCBuilder = ({ cart, setCart }) => {
     setTimeout(() => t.remove(), 3000);
   };
 
-  // --- PDF GENERATION WITH REAL BARCODE ---
-  const handleDownloadQuotation = () => {
+  // --- PDF GENERATION WITH REAL SEQUENTIAL BARCODE ---
+  const handleDownloadQuotation = async () => {
     try {
       const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
       if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
 
-      const doc = new jsPDF();
+      // 1. GET SEQUENTIAL NUMBER FROM FIREBASE (TRANSACTION)
+      const counterRef = doc(db, "settings", "quotationCounter");
+      let nextNo;
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          const counterSnap = await transaction.get(counterRef);
+          if (!counterSnap.exists()) throw "Counter doc missing!";
+          nextNo = (counterSnap.data().lastNo || 1000) + 1;
+          transaction.update(counterRef, { lastNo: nextNo });
+        });
+      } catch (e) {
+        console.error("Counter Error:", e);
+        nextNo = Math.floor(1000 + Math.random() * 9000); // Fallback if DB fails
+      }
+
+      const docPdf = new jsPDF();
       const now = new Date();
       const dateStr = now.toLocaleDateString('en-GB'); 
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       
-      // Real Looking Quote No: 2026/01/XXXX
-      const quoteNo = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${Math.floor(1000 + Math.random() * 9000)}`;
+      // Professional Quote No: Year/Month/SequentialID
+      const quoteNo = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${nextNo}`;
 
-      // 1. Generate Real Barcode Image
+      // 2. Generate Barcode
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, quoteNo, {
         format: "CODE128",
@@ -95,42 +111,40 @@ const PCBuilder = ({ cart, setCart }) => {
       });
       const barcodeImg = canvas.toDataURL("image/png");
 
-      // --- HEADER ---
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(40);
-      doc.text("DMO", 15, 25);
-      doc.setFontSize(10);
-      doc.text("C O M P U T E R S", 15, 31);
-      doc.setLineWidth(0.5);
-      doc.line(70, 15, 70, 35);
+      // --- PDF DESIGN ---
+      docPdf.setFont("helvetica", "bold");
+      docPdf.setFontSize(40);
+      docPdf.text("DUMO", 15, 25);
+      docPdf.setFontSize(10);
+      docPdf.text("C O M P U T E R S", 15, 31);
+      docPdf.setLineWidth(0.5);
+      docPdf.line(70, 15, 70, 35);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(18);
-      doc.text("DUMO COMPUTERS WELIWERIYA", 195, 20, { align: "right" });
-      doc.setFontSize(8);
-      doc.text("NO. 302/6, NEW KANDY ROAD, WELIWERIYA", 195, 25, { align: "right" });
-      doc.text("011 3692106 / 074 2299006", 195, 29, { align: "right" });
-      doc.text("dumocomputers@gmail.com", 195, 33, { align: "right" });
-      doc.text("www.dumo.lk", 195, 37, { align: "right" });
+      docPdf.setFont("helvetica", "normal");
+      docPdf.setFontSize(18);
+      docPdf.text("DUMO COMPUTERS WELIWERIYA", 195, 20, { align: "right" });
+      docPdf.setFontSize(8);
+      docPdf.text("NO. 302/6, NEW KANDY ROAD, WELIWERIYA", 195, 25, { align: "right" });
+      docPdf.text("011 3692106 / 074 2299006", 195, 29, { align: "right" });
+      docPdf.text("dumocomputers@gmail.com", 195, 33, { align: "right" });
+      docPdf.text("www.dumo.lk", 195, 37, { align: "right" });
 
-      // --- INFO ---
-      doc.setFontSize(10);
-      doc.text(quoteNo, 15, 55);
-      doc.text("Customer", 15, 60);
-      doc.setFont("helvetica", "bold");
-      doc.text("QUOTATION", 15, 65);
-      doc.setFont("helvetica", "normal");
-      doc.text("Mobile: -", 15, 70);
-      doc.text(`Date ${dateStr} ${timeStr}`, 195, 55, { align: "right" });
+      docPdf.setFontSize(10);
+      docPdf.text(`ID: ${quoteNo}`, 15, 55);
+      docPdf.text("Customer", 15, 60);
+      docPdf.setFont("helvetica", "bold");
+      docPdf.text("QUOTATION", 15, 65);
+      docPdf.setFont("helvetica", "normal");
+      docPdf.text("Mobile: -", 15, 70);
+      docPdf.text(`Date ${dateStr} ${timeStr}`, 195, 55, { align: "right" });
 
-      // --- TABLE ---
       const tableRows = [];
       selectedItems.forEach(([cat, comp]) => {
         tableRows.push([comp.name.toUpperCase(), "1.00 QTY", formatCurrency(comp.sellingPrice), formatCurrency(comp.sellingPrice)]);
         tableRows.push([{ content: `03 Month Warranty - ${dateStr}`, styles: { fontSize: 8, textColor: [50, 50, 50], cellPadding: { top: -1, left: 2 } } }, "", "", ""]);
       });
 
-      autoTable(doc, {
+      autoTable(docPdf, {
         startY: 75,
         head: [['Product', 'Quantity', 'Unit Price', 'Subtotal']],
         body: tableRows,
@@ -140,28 +154,27 @@ const PCBuilder = ({ cart, setCart }) => {
         columnStyles: { 0: { cellWidth: 100 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
       });
 
-      // --- SUMMARY ---
-      let finalY = doc.lastAutoTable.finalY + 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Subtotal:", 140, finalY);
-      doc.text(`Rs ${formatCurrency(totalPrice)}`, 195, finalY, { align: "right" });
-      doc.setFont("helvetica", "normal");
-      doc.text("Discount:", 140, finalY + 6);
-      doc.text("(-) Rs 0.00", 195, finalY + 6, { align: "right" });
+      let finalY = docPdf.lastAutoTable.finalY + 10;
+      docPdf.setFont("helvetica", "bold");
+      docPdf.text("Subtotal:", 140, finalY);
+      docPdf.text(`Rs ${formatCurrency(totalPrice)}`, 195, finalY, { align: "right" });
+      docPdf.setFont("helvetica", "normal");
+      docPdf.text("Discount:", 140, finalY + 6);
+      docPdf.text("(-) Rs 0.00", 195, finalY + 6, { align: "right" });
       
-      doc.setFillColor(245, 245, 245);
-      doc.rect(135, finalY + 9, 65, 8, 'F');
-      doc.setFont("helvetica", "bold");
-      doc.text("Total:", 140, finalY + 15);
-      doc.text(`Rs ${formatCurrency(totalPrice)}`, 195, finalY + 15, { align: "right" });
+      docPdf.setFillColor(245, 245, 245);
+      docPdf.rect(135, finalY + 9, 65, 8, 'F');
+      docPdf.setFont("helvetica", "bold");
+      docPdf.text("Total:", 140, finalY + 15);
+      docPdf.text(`Rs ${formatCurrency(totalPrice)}`, 195, finalY + 15, { align: "right" });
 
-      // --- REAL BARCODE FOOTER ---
+      // FOOTER BARCODE
       const footerY = 272;
-      doc.addImage(barcodeImg, 'PNG', 70, footerY, 70, 12);
-      doc.setFontSize(9);
-      doc.text(quoteNo, 105, footerY + 18, { align: "center" });
+      docPdf.addImage(barcodeImg, 'PNG', 70, footerY, 70, 12);
+      docPdf.setFontSize(9);
+      docPdf.text(quoteNo, 105, footerY + 18, { align: "center" });
 
-      doc.save(`DUMO_QUOTATION_${quoteNo.replace(/\//g, '-')}.pdf`);
+      docPdf.save(`DUMO_QUOTATION_${quoteNo.replace(/\//g, '-')}.pdf`);
       showToast("QUOTATION DOWNLOADED!", "border-green-500");
     } catch (error) {
       console.error("PDF Error:", error);
@@ -169,7 +182,6 @@ const PCBuilder = ({ cart, setCart }) => {
     }
   };
 
-  // ... (handleShareBuild සහ handleWhatsApp කලින් තිබූ පරිදිම පවතී)
   const handleShareBuild = () => {
     const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
     if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
@@ -189,10 +201,8 @@ const PCBuilder = ({ cart, setCart }) => {
   };
 
   return (
-    // ... (ඔයාගේ සම්පූර්ණ UI එකේ JSX එක මෙතනට එයි - කිසිදු වෙනසක් නැත)
     <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500 relative">
         <SpaceBackground />
-        {/* Header Section */}
         <div className="relative pt-32 pb-16 px-6 border-b border-white/5 bg-black/40 backdrop-blur-md z-10">
             <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-8 animate-reveal-up">
                 <div>
@@ -208,7 +218,6 @@ const PCBuilder = ({ cart, setCart }) => {
             </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-8 space-y-6">
@@ -257,7 +266,6 @@ const PCBuilder = ({ cart, setCart }) => {
                     })}
                 </div>
 
-                {/* Sidebar Build Log */}
                 <div className="lg:col-span-4 lg:sticky lg:top-10 h-fit">
                     <div className="bg-zinc-900/60 border border-white/10 rounded-[45px] p-8 backdrop-blur-3xl shadow-3xl animate-reveal-right">
                         <h2 className="text-2xl font-black italic mb-8 uppercase tracking-tighter flex items-center gap-3">
@@ -296,7 +304,6 @@ const PCBuilder = ({ cart, setCart }) => {
             .animate-reveal-right { animation: reveal-right 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
             .fill-mode-both { animation-fill-mode: both; }
         `}</style>
-        {/* Floating Social Icons */}
         <div className="fixed bottom-6 right-6 z-[100]">
             {isSocialOpen && (
                 <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
