@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { db } from "../firebase/config";
 import { 
-  collection, addDoc, deleteDoc, doc, updateDoc,
+  collection, addDoc, deleteDoc, doc, 
   serverTimestamp, query, orderBy, onSnapshot 
 } from "firebase/firestore";
 import SpaceBackground from "../components/SpaceBackground";
@@ -27,7 +27,7 @@ const Admin = () => {
   const [uploadProgress, setUploadProgress] = useState(0); 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  // Product Form States (Normal)
+  // Form States
   const [name, setName] = useState("");
   const [selectedBrand, setSelectedBrand] = useState(""); 
   const [buyingPrice, setBuyingPrice] = useState("");
@@ -35,19 +35,12 @@ const Admin = () => {
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
-  const [socket, setSocket] = useState(""); 
-  const [ramType, setRamType] = useState(""); 
-
-  // Offer Form States (New)
+  
+  // Offer / Slider States
   const [offerTitle, setOfferTitle] = useState("");
   const [offerImage, setOfferImage] = useState("");
   const [offerExpiry, setOfferExpiry] = useState("");
-
-  // Hero Slide Form States
-  const [slideTitle, setSlideTitle] = useState("");
-  const [slideImage, setSlideImage] = useState("");
-  const [slideLink, setSlideLink] = useState("shop");
-  const [slideOrder, setSlideOrder] = useState("1");
+  const [offerLink, setOfferLink] = useState("shop");
 
   const ADMIN_PASSWORD = "1234"; 
   const IMGBB_API_KEY = "cbabafe642eea7200b76cb9136e84615";
@@ -60,7 +53,7 @@ const Admin = () => {
   const handleImageUpload = async (e, target) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploadProgress(10);
+    setUploadProgress(20);
     const formData = new FormData();
     formData.append("image", file);
     try {
@@ -68,11 +61,9 @@ const Admin = () => {
         method: "POST",
         body: formData,
       });
-      setUploadProgress(50); 
       const data = await response.json();
       if (data.success) {
         if (target === 'product') setImage(data.data.url);
-        if (target === 'slide') setSlideImage(data.data.url);
         if (target === 'offer') setOfferImage(data.data.url);
         setUploadProgress(100);
         showToast("Image Uploaded!");
@@ -83,19 +74,19 @@ const Admin = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const unsubProducts = onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snap) => {
+      onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snap) => {
         setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
-      const unsubCats = onSnapshot(query(collection(db, "categories"), orderBy("name", "asc")), (snap) => {
+      onSnapshot(query(collection(db, "categories"), orderBy("name", "asc")), (snap) => {
         setCategories(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
-      const unsubBrands = onSnapshot(query(collection(db, "brands"), orderBy("name", "asc")), (snap) => {
+      onSnapshot(query(collection(db, "brands"), orderBy("name", "asc")), (snap) => {
         setBrands(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
-      const unsubSlides = onSnapshot(query(collection(db, "hero_slides"), orderBy("order", "asc")), (snap) => {
+      // Slider data fetching
+      onSnapshot(query(collection(db, "hero_slides"), orderBy("createdAt", "desc")), (snap) => {
         setSlides(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
-      return () => { unsubProducts(); unsubCats(); unsubBrands(); unsubSlides(); };
     }
   }, [isAuthenticated]);
 
@@ -108,7 +99,8 @@ const Admin = () => {
       await addDoc(collection(db, "products"), {
         name, brand: selectedBrand, buyingPrice: Number(buyingPrice),
         sellingPrice: Number(sellingPrice), stock: Number(stock),
-        category: category.toLowerCase().trim(), image, socket, ramType,
+        category: category.toLowerCase().trim(), image,
+        isOffer: false,
         createdAt: serverTimestamp()
       });
       setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); setImage("");
@@ -117,28 +109,42 @@ const Admin = () => {
     setFormLoading(false);
   };
 
-  const handleAddOffer = async () => {
+  const handlePublishOffer = async () => {
     if (!offerTitle || !offerImage || !offerExpiry) {
       showToast("Fill all fields!", "error"); return;
     }
     setFormLoading(true);
     try {
-      await addDoc(collection(db, "products"), {
-        name: offerTitle,
+      // මෙය hero_slides එකට ඇතුලත් වේ, එවිට Home Slider එකේ පෙන්වයි
+      await addDoc(collection(db, "hero_slides"), {
+        title: offerTitle,
         image: offerImage,
         expiryDate: new Date(offerExpiry).toISOString(),
+        link: offerLink,
+        order: 1, // අලුත්ම එක මුලට ඒමට
         isOffer: true,
-        category: "offers",
         createdAt: serverTimestamp()
       });
       setOfferTitle(""); setOfferImage(""); setOfferExpiry("");
-      showToast("Offer Published!");
+      showToast("Offer Live on Slider!");
     } catch (e) { showToast("Error", "error"); }
     setFormLoading(false);
   };
 
+  const handleAddCategory = async () => {
+    if (!newCatName) return;
+    await addDoc(collection(db, "categories"), { name: newCatName });
+    setNewCatName(""); showToast("Category Added");
+  };
+
+  const handleAddBrand = async () => {
+    if (!newBrandName) return;
+    await addDoc(collection(db, "brands"), { name: newBrandName });
+    setNewBrandName(""); showToast("Brand Added");
+  };
+
   const deleteItem = async (id, collectionName) => {
-    if (window.confirm(`Delete this?`)) {
+    if (window.confirm(`Delete this item?`)) {
       try {
         await deleteDoc(doc(db, collectionName, id));
         showToast("Deleted");
@@ -148,7 +154,7 @@ const Admin = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="relative min-h-screen bg-black flex items-center justify-center p-6 text-white italic font-sans text-center overflow-hidden">
+      <div className="relative min-h-screen bg-black flex items-center justify-center p-6 text-white italic text-center overflow-hidden">
         <SpaceBackground />
         <div className="relative z-10 bg-zinc-900/80 backdrop-blur-md border border-white/10 p-10 rounded-[30px] w-full max-w-md">
           <Lock size={40} className="mx-auto mb-6 text-amber-500" />
@@ -167,8 +173,7 @@ const Admin = () => {
         {[
           { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
           { id: 'inventory', icon: Package, label: 'Inventory' },
-          { id: 'offers', icon: Tag, label: 'Special Offers' },
-          { id: 'hero', icon: ImageIcon, label: 'Hero Banners' },
+          { id: 'offers', icon: Tag, label: 'Offers & Slider' },
           { id: 'setup', icon: Layers, label: 'Store Setup' }
         ].map((tab) => (
           <button 
@@ -187,7 +192,7 @@ const Admin = () => {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row font-sans relative">
+    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row relative">
       <SpaceBackground />
       {toast.show && <div className={`fixed top-5 right-5 z-[100] px-6 py-3 rounded-xl font-bold border animate-bounce ${toast.type === 'success' ? 'bg-green-500/10 border-green-500 text-green-500' : 'bg-red-500/10 border-red-500 text-red-500'}`}>{toast.message}</div>}
 
@@ -196,6 +201,13 @@ const Admin = () => {
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>{isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}</button>
       </div>
 
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-black z-40 p-10 md:hidden">
+            <button className="absolute top-6 right-6" onClick={() => setIsMobileMenuOpen(false)}><X size={32}/></button>
+            <SidebarContent />
+        </div>
+      )}
+
       <div className="hidden md:flex w-72 border-r border-white/10 p-8 flex-col bg-zinc-950/50 backdrop-blur-lg sticky top-0 h-screen z-20">
         <SidebarContent />
       </div>
@@ -203,77 +215,65 @@ const Admin = () => {
       <div className="flex-1 p-6 md:p-12 overflow-y-auto relative z-10">
         
         {activeTab === 'dashboard' && (
-          <div className="space-y-10 animate-in fade-in duration-700">
-            <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase">Dashboard</h1>
+          <div className="space-y-10">
+            <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Dashboard</h1>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10 text-center">
-                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Normal Products</span>
-                <span className="text-6xl font-black text-amber-500 tracking-tighter">{products.filter(p => !p.isOffer).length}</span>
+                <span className="text-zinc-500 text-xs uppercase font-black block mb-4">Total Inventory</span>
+                <span className="text-6xl font-black text-amber-500">{products.length}</span>
               </div>
               <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10 text-center">
-                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Active Offers</span>
-                <span className="text-6xl font-black text-white tracking-tighter">{products.filter(p => p.isOffer).length}</span>
-              </div>
-              <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10 text-center">
-                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Total Items</span>
-                <span className="text-6xl font-black text-green-500 tracking-tighter">{products.length}</span>
+                <span className="text-zinc-500 text-xs uppercase font-black block mb-4">Live Offers</span>
+                <span className="text-6xl font-black text-white">{slides.length}</span>
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'inventory' && (
-          <div className="space-y-10 animate-in fade-in duration-700">
+          <div className="space-y-10 animate-reveal-up">
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Inventory</h1>
             <div className="bg-zinc-900/30 backdrop-blur-md border border-white/10 p-6 md:p-12 rounded-[50px] space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-black/40 p-8 rounded-[35px] border border-white/5">
-                <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-[30px] p-8 text-center hover:border-amber-500/50">
+                <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-8 text-center hover:border-amber-500/50">
                   <input type="file" onChange={(e) => handleImageUpload(e, 'product')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                  {image ? <img src={image} className="w-full h-40 object-contain rounded-xl" alt="Preview" /> : <div className="flex flex-col items-center"><Upload className="text-zinc-500 mb-2" size={30} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Product Image</p></div>}
+                  {image ? <img src={image} className="w-full h-40 object-contain rounded-xl" alt="Preview" /> : <div className="flex flex-col items-center"><Upload className="text-zinc-500 mb-2" size={30} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Image</p></div>}
+                  {uploadProgress > 0 && <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all" style={{width: `${uploadProgress}%`}}></div>}
                 </div>
-                <div className="space-y-2"><p className="text-[12px] font-black italic text-amber-500 uppercase tracking-widest">Status: {image ? "Ready ✓" : "No Image"}</p></div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <div className="lg:col-span-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block tracking-widest">Product Name</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm text-white" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block tracking-widest">Category</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none font-black uppercase italic text-sm text-white">
-                    <option value="">Select Category</option>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block tracking-widest">Brand</label>
-                  <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none font-black uppercase italic text-sm text-white">
-                    <option value="">Select Brand</option>
-                    {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-                  </select>
+                <div className="space-y-4">
+                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Product Name" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-white" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-white text-xs">
+                            <option value="">Category</option>
+                            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                        </select>
+                        <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-white text-xs">
+                            <option value="">Brand</option>
+                            {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                        </select>
+                    </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 items-end">
-                <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block tracking-widest">Stock</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
-                <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-2 block tracking-widest">Cost</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
-                <div><label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-2 block tracking-widest">Selling</label><input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
+                <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Stock</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
+                <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-2 block">Cost</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
+                <div><label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-2 block">Selling</label><input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
                 <button disabled={formLoading} onClick={handleAddProduct} className="bg-white text-black h-[60px] rounded-2xl font-black hover:bg-amber-500 uppercase italic text-sm flex items-center justify-center gap-3">
-                  {formLoading ? <RefreshCw className="animate-spin" /> : "Publish Item"}
+                  {formLoading ? <RefreshCw className="animate-spin" /> : "Publish"}
                 </button>
               </div>
             </div>
 
-            <div className="bg-zinc-950/50 backdrop-blur-md border border-white/10 rounded-[40px] overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase tracking-widest border-b border-white/5">
+            <div className="bg-zinc-950/50 backdrop-blur-md border border-white/10 rounded-[40px] overflow-hidden overflow-x-auto">
+              <table className="w-full text-left min-w-[600px]">
+                <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase border-b border-white/5">
                   <tr><th className="p-8">Details</th><th className="p-8">Pricing</th><th className="p-8">Action</th></tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 italic">
                   {products.filter(p => !p.isOffer).map(p => (
-                    <tr key={p.id} className="hover:bg-white/[0.01] group">
-                      <td className="p-8"><div className="flex items-center gap-6"><img src={p.image} className="w-16 h-16 rounded-2xl object-cover border border-white/5" /><div className="font-black uppercase text-lg">{p.name}<span className="block text-[10px] text-zinc-600 not-italic mt-1 uppercase tracking-tighter">{p.category} • {p.stock} Units</span></div></div></td>
+                    <tr key={p.id} className="hover:bg-white/[0.01]">
+                      <td className="p-8"><div className="flex items-center gap-6"><img src={p.image} className="w-16 h-16 rounded-2xl object-cover" /><div className="font-black uppercase text-lg">{p.name}<span className="block text-[10px] text-zinc-600 not-italic uppercase mt-1">{p.category} • {p.stock} Units</span></div></div></td>
                       <td className="p-8 font-black text-xl">LKR {p.sellingPrice?.toLocaleString()}</td>
                       <td className="p-8"><button onClick={() => deleteItem(p.id, "products")} className="text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={22} /></button></td>
                     </tr>
@@ -285,66 +285,43 @@ const Admin = () => {
         )}
 
         {activeTab === 'offers' && (
-          <div className="space-y-10 animate-in fade-in duration-700">
+          <div className="space-y-10 animate-reveal-up">
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Special Offers</h1>
             <div className="bg-zinc-900/30 backdrop-blur-md border border-white/10 p-6 md:p-12 rounded-[50px] space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-black/40 p-8 rounded-[35px] border border-white/5">
                 <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-12 text-center hover:border-amber-500/50">
                   <input type="file" onChange={(e) => handleImageUpload(e, 'offer')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                  {offerImage ? <img src={offerImage} className="w-full h-40 object-contain rounded-xl" /> : <div className="flex flex-col items-center"><ImageIcon className="text-zinc-500 mb-2" size={40} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Offer Image</p></div>}
+                  {offerImage ? <img src={offerImage} className="w-full h-40 object-contain rounded-xl" /> : <div className="flex flex-col items-center"><ImageIcon className="text-zinc-500 mb-2" size={40} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Banner Image</p></div>}
                 </div>
                 <div className="space-y-4">
-                  <input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="Offer Name (e.g. RTX 4090 MEGA SALE)" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white" />
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-amber-500 uppercase ml-2 flex items-center gap-1 italic"><Timer size={12}/> Set Expiry Time</label>
-                    <input type="datetime-local" value={offerExpiry} onChange={(e) => setOfferExpiry(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white outline-none focus:border-amber-500" />
-                  </div>
-                  <button onClick={handleAddOffer} className="w-full bg-white text-black h-[60px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm">Publish Special Offer</button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {products.filter(p => p.isOffer).map(offer => (
-                  <div key={offer.id} className="bg-zinc-900/40 border border-white/5 p-6 rounded-[35px] flex items-center gap-6 relative group">
-                    <img src={offer.image} className="w-24 h-24 rounded-2xl object-cover" />
-                    <div>
-                        <p className="font-black italic uppercase text-amber-500">{offer.name}</p>
-                        <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase mt-2">
-                            <Timer size={12}/> {new Date(offer.expiryDate).toLocaleString()}
-                        </div>
-                    </div>
-                    <button onClick={() => deleteItem(offer.id, "products")} className="absolute top-6 right-6 text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'hero' && (
-          <div className="space-y-10 animate-in fade-in duration-700">
-            <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Hero Banners</h1>
-            <div className="bg-zinc-900/30 backdrop-blur-md border border-white/10 p-6 md:p-12 rounded-[50px] space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-black/40 p-8 rounded-[35px] border border-white/5">
-                <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-12 text-center hover:border-amber-500/50">
-                  <input type="file" onChange={(e) => handleImageUpload(e, 'slide')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                  {slideImage ? <img src={slideImage} className="w-full h-40 object-contain rounded-xl" alt="Preview" /> : <div className="flex flex-col items-center"><ImageIcon className="text-zinc-500 mb-2" size={40} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Banner Image</p></div>}
-                </div>
-                <div className="space-y-4">
-                  <input value={slideTitle} onChange={(e) => setSlideTitle(e.target.value)} placeholder="Banner Title" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white" />
+                  <input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="Offer Title (e.g. MEGA SALE)" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white" />
                   <div className="grid grid-cols-2 gap-4">
-                    <select value={slideLink} onChange={(e) => setSlideLink(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white"><option value="shop">Shop Page</option><option value="builder">PC Builder</option></select>
-                    <input type="number" value={slideOrder} onChange={(e) => setSlideOrder(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" />
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-amber-500 uppercase ml-2 flex items-center gap-1 italic"><Timer size={10}/> Expiry</label>
+                        <input type="datetime-local" value={offerExpiry} onChange={(e) => setOfferExpiry(e.target.value)} className="w-full bg-black border border-white/10 p-3 rounded-xl font-black text-white text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-black text-zinc-500 uppercase ml-2 italic">Click Action</label>
+                        <select value={offerLink} onChange={(e) => setOfferLink(e.target.value)} className="w-full bg-black border border-white/10 p-3 rounded-xl font-black text-white text-xs italic uppercase">
+                            <option value="shop">Go to Shop</option>
+                            <option value="builder">Go to PC Builder</option>
+                            <option value="whatsapp">Contact WhatsApp</option>
+                        </select>
+                    </div>
                   </div>
-                  <button onClick={handleAddSlide} className="w-full bg-white text-black h-[60px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm">Add New Banner</button>
+                  <button onClick={handlePublishOffer} className="w-full bg-white text-black h-[60px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm">Publish to Slider</button>
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {slides.map(slide => (
-                  <div key={slide.id} className="bg-black/40 border border-white/5 p-6 rounded-[35px] relative overflow-hidden text-center">
-                    <img src={slide.image} className="w-full h-32 object-contain mb-4" />
-                    <p className="font-black italic uppercase text-amber-500 text-xs">{slide.title || "No Title"}</p>
-                    <button onClick={() => deleteItem(slide.id, "hero_slides")} className="absolute top-4 right-4 text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
+                {slides.map(offer => (
+                  <div key={offer.id} className="bg-zinc-900/40 border border-white/5 p-6 rounded-[35px] relative group overflow-hidden">
+                    <img src={offer.image} className="w-full h-32 object-contain mb-4" />
+                    <p className="font-black italic uppercase text-amber-500 text-center">{offer.title}</p>
+                    <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] font-bold uppercase mt-2">
+                        <Timer size={12}/> {new Date(offer.expiryDate).toLocaleDateString()}
+                    </div>
+                    <button onClick={() => deleteItem(offer.id, "hero_slides")} className="absolute top-4 right-4 text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
                   </div>
                 ))}
               </div>
@@ -353,7 +330,7 @@ const Admin = () => {
         )}
 
         {activeTab === 'setup' && (
-          <div className="space-y-16 animate-in fade-in duration-700">
+          <div className="space-y-16 animate-reveal-up">
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Setup</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
               <div className="space-y-8">
@@ -364,11 +341,11 @@ const Admin = () => {
                     <button onClick={handleAddCategory} className="bg-white text-black px-6 rounded-2xl font-black">Add</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 uppercase italic font-black text-sm">
+                <div className="grid grid-cols-2 gap-4 uppercase italic font-black text-[10px]">
                   {categories.map(cat => (
-                    <div key={cat.id} className="bg-zinc-900/40 p-5 rounded-3xl border border-white/5 flex justify-between items-center group">
+                    <div key={cat.id} className="bg-zinc-900/40 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
                       <span>{cat.name}</span>
-                      <button onClick={() => deleteItem(cat.id, "categories")} className="text-zinc-800 hover:text-red-500"><Trash2 size={16} /></button>
+                      <button onClick={() => deleteItem(cat.id, "categories")} className="text-zinc-800 hover:text-red-500"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </div>
@@ -381,11 +358,11 @@ const Admin = () => {
                     <button onClick={handleAddBrand} className="bg-white text-black px-6 rounded-2xl font-black">Add</button>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 uppercase italic font-black text-sm">
+                <div className="grid grid-cols-2 gap-4 uppercase italic font-black text-[10px]">
                   {brands.map(brand => (
-                    <div key={brand.id} className="bg-zinc-900/40 p-5 rounded-3xl border border-white/5 flex justify-between items-center group">
+                    <div key={brand.id} className="bg-zinc-900/40 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
                       <span>{brand.name}</span>
-                      <button onClick={() => deleteItem(brand.id, "brands")} className="text-zinc-800 hover:text-red-500"><Trash2 size={16} /></button>
+                      <button onClick={() => deleteItem(brand.id, "brands")} className="text-zinc-800 hover:text-red-500"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </div>
@@ -394,6 +371,11 @@ const Admin = () => {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes reveal-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-reveal-up { animation: reveal-up 0.5s ease-out both; }
+      `}</style>
     </div>
   );
 };
