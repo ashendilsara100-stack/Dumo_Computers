@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, Lock, Trash2, LogOut, RefreshCw, 
-  Layers, Upload, Menu, X, Image as ImageIcon, Link as LinkIcon, Timer
+  Layers, Upload, Menu, X, Image as ImageIcon, Timer, Tag
 } from 'lucide-react';
 import { db } from "../firebase/config";
 import { 
@@ -23,12 +23,11 @@ const Admin = () => {
 
   const [newCatName, setNewCatName] = useState("");
   const [newBrandName, setNewBrandName] = useState("");
-  const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0); 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  // Product Form States
+  // Product Form States (Normal)
   const [name, setName] = useState("");
   const [selectedBrand, setSelectedBrand] = useState(""); 
   const [buyingPrice, setBuyingPrice] = useState("");
@@ -38,7 +37,11 @@ const Admin = () => {
   const [image, setImage] = useState("");
   const [socket, setSocket] = useState(""); 
   const [ramType, setRamType] = useState(""); 
-  const [expiryDate, setExpiryDate] = useState(""); // <--- New State
+
+  // Offer Form States (New)
+  const [offerTitle, setOfferTitle] = useState("");
+  const [offerImage, setOfferImage] = useState("");
+  const [offerExpiry, setOfferExpiry] = useState("");
 
   // Hero Slide Form States
   const [slideTitle, setSlideTitle] = useState("");
@@ -70,6 +73,7 @@ const Admin = () => {
       if (data.success) {
         if (target === 'product') setImage(data.data.url);
         if (target === 'slide') setSlideImage(data.data.url);
+        if (target === 'offer') setOfferImage(data.data.url);
         setUploadProgress(100);
         showToast("Image Uploaded!");
         setTimeout(() => setUploadProgress(0), 1000);
@@ -101,56 +105,36 @@ const Admin = () => {
     }
     setFormLoading(true);
     try {
-      const formattedCategory = category.toLowerCase().trim();
       await addDoc(collection(db, "products"), {
         name, brand: selectedBrand, buyingPrice: Number(buyingPrice),
         sellingPrice: Number(sellingPrice), stock: Number(stock),
-        category: formattedCategory, image, socket, ramType,
-        expiryDate: expiryDate ? new Date(expiryDate).toISOString() : null, // <--- Save Expiry
+        category: category.toLowerCase().trim(), image, socket, ramType,
         createdAt: serverTimestamp()
       });
-      setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); setImage(""); setExpiryDate("");
+      setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); setImage("");
       showToast("Product published!");
     } catch (e) { showToast("Error", "error"); }
     setFormLoading(false);
   };
 
-  const handleExtendTime = async (id, currentExpiry) => {
-    const additionalHours = prompt("පැය කීයකින් කාලය වැඩි කළ යුතුද? (Hours)", "24");
-    if (!additionalHours || isNaN(additionalHours)) return;
-
-    const baseDate = currentExpiry ? new Date(currentExpiry) : new Date();
-    const newDate = new Date(baseDate.getTime() + (parseInt(additionalHours) * 60 * 60 * 1000));
-
+  const handleAddOffer = async () => {
+    if (!offerTitle || !offerImage || !offerExpiry) {
+      showToast("Fill all fields!", "error"); return;
+    }
+    setFormLoading(true);
     try {
-      await updateDoc(doc(db, "products", id), {
-        expiryDate: newDate.toISOString()
+      await addDoc(collection(db, "products"), {
+        name: offerTitle,
+        image: offerImage,
+        expiryDate: new Date(offerExpiry).toISOString(),
+        isOffer: true,
+        category: "offers",
+        createdAt: serverTimestamp()
       });
-      showToast("Offer Extended!");
-    } catch (e) { showToast("Update Failed", "error"); }
-  };
-
-  const handleAddCategory = async () => {
-    if(!newCatName) return;
-    await addDoc(collection(db, "categories"), { name: newCatName });
-    setNewCatName("");
-  };
-
-  const handleAddBrand = async () => {
-    if(!newBrandName) return;
-    await addDoc(collection(db, "brands"), { name: newBrandName });
-    setNewBrandName("");
-  };
-
-  const handleAddSlide = async () => {
-    if (!slideImage) { showToast("Upload a slide image!", "error"); return; }
-    try {
-      await addDoc(collection(db, "hero_slides"), {
-        title: slideTitle, image: slideImage, link: slideLink, order: Number(slideOrder)
-      });
-      setSlideTitle(""); setSlideImage("");
-      showToast("Banner Added!");
+      setOfferTitle(""); setOfferImage(""); setOfferExpiry("");
+      showToast("Offer Published!");
     } catch (e) { showToast("Error", "error"); }
+    setFormLoading(false);
   };
 
   const deleteItem = async (id, collectionName) => {
@@ -183,6 +167,7 @@ const Admin = () => {
         {[
           { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
           { id: 'inventory', icon: Package, label: 'Inventory' },
+          { id: 'offers', icon: Tag, label: 'Special Offers' },
           { id: 'hero', icon: ImageIcon, label: 'Hero Banners' },
           { id: 'setup', icon: Layers, label: 'Store Setup' }
         ].map((tab) => (
@@ -222,16 +207,16 @@ const Admin = () => {
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase">Dashboard</h1>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10 text-center">
-                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Products</span>
-                <span className="text-6xl font-black text-amber-500 tracking-tighter">{products.length}</span>
+                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Normal Products</span>
+                <span className="text-6xl font-black text-amber-500 tracking-tighter">{products.filter(p => !p.isOffer).length}</span>
               </div>
               <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10 text-center">
-                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Hero Slides</span>
-                <span className="text-6xl font-black text-white tracking-tighter">{slides.length}</span>
+                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Active Offers</span>
+                <span className="text-6xl font-black text-white tracking-tighter">{products.filter(p => p.isOffer).length}</span>
               </div>
               <div className="bg-zinc-900/50 p-10 rounded-[40px] border border-white/10 text-center">
-                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Total Stock</span>
-                <span className="text-6xl font-black text-green-500 tracking-tighter">{products.reduce((acc, p) => acc + Number(p.stock), 0)}</span>
+                <span className="text-zinc-500 text-xs uppercase font-black tracking-widest block mb-4">Total Items</span>
+                <span className="text-6xl font-black text-green-500 tracking-tighter">{products.length}</span>
               </div>
             </div>
           </div>
@@ -245,12 +230,11 @@ const Admin = () => {
                 <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-[30px] p-8 text-center hover:border-amber-500/50">
                   <input type="file" onChange={(e) => handleImageUpload(e, 'product')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                   {image ? <img src={image} className="w-full h-40 object-contain rounded-xl" alt="Preview" /> : <div className="flex flex-col items-center"><Upload className="text-zinc-500 mb-2" size={30} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Product Image</p></div>}
-                  {uploadProgress > 0 && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-zinc-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all" style={{ width: `${uploadProgress}%` }}></div></div>}
                 </div>
-                <div className="space-y-2"><p className="text-[12px] font-black italic text-amber-500 uppercase tracking-widest tracking-tighter">Status: {image ? "Ready ✓" : "Waiting for upload"}</p></div>
+                <div className="space-y-2"><p className="text-[12px] font-black italic text-amber-500 uppercase tracking-widest">Status: {image ? "Ready ✓" : "No Image"}</p></div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <div className="lg:col-span-2">
                   <label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block tracking-widest">Product Name</label>
                   <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-amber-500 font-black uppercase italic text-sm text-white" />
@@ -269,27 +253,6 @@ const Admin = () => {
                     {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-2 block italic flex items-center gap-1 uppercase tracking-widest">
-                    <Timer size={12}/> Offer Expiry
-                  </label>
-                  <input type="datetime-local" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none font-black text-sm text-white" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-black/40 p-8 rounded-[35px] border border-white/5">
-                <div className={!(category.toLowerCase().includes('cpu') || category.toLowerCase().includes('motherboard') || category.toLowerCase().includes('cool')) ? 'opacity-20' : ''}>
-                  <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-2 block italic tracking-widest">Socket</label>
-                  <input value={socket} onChange={(e) => setSocket(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none font-black uppercase italic text-sm text-white" />
-                </div>
-                <div className={!(category.toLowerCase().includes('ram') || category.toLowerCase().includes('motherboard')) ? 'opacity-20' : ''}>
-                  <label className="text-[10px] font-black text-amber-500 uppercase ml-2 mb-2 block italic tracking-widest">RAM Type</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {['DDR2', 'DDR3', 'DDR4', 'DDR5'].map((type) => (
-                      <button key={type} onClick={() => setRamType(type)} className={`p-3 rounded-xl font-black text-[10px] italic border ${ramType === type ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-600'}`}>{type}</button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 items-end">
@@ -297,7 +260,7 @@ const Admin = () => {
                 <div><label className="text-[10px] font-black text-red-500 uppercase ml-2 mb-2 block tracking-widest">Cost</label><input type="number" value={buyingPrice} onChange={(e) => setBuyingPrice(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
                 <div><label className="text-[10px] font-black text-green-500 uppercase ml-2 mb-2 block tracking-widest">Selling</label><input type="number" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
                 <button disabled={formLoading} onClick={handleAddProduct} className="bg-white text-black h-[60px] rounded-2xl font-black hover:bg-amber-500 uppercase italic text-sm flex items-center justify-center gap-3">
-                  {formLoading ? <RefreshCw className="animate-spin" /> : "Publish"}
+                  {formLoading ? <RefreshCw className="animate-spin" /> : "Publish Item"}
                 </button>
               </div>
             </div>
@@ -305,22 +268,12 @@ const Admin = () => {
             <div className="bg-zinc-950/50 backdrop-blur-md border border-white/10 rounded-[40px] overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-zinc-900/50 text-zinc-500 font-black text-[10px] uppercase tracking-widest border-b border-white/5">
-                  <tr><th className="p-8">Details</th><th className="p-8">Offer Ends</th><th className="p-8">Pricing</th><th className="p-8">Action</th></tr>
+                  <tr><th className="p-8">Details</th><th className="p-8">Pricing</th><th className="p-8">Action</th></tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 italic">
-                  {products.map(p => (
+                  {products.filter(p => !p.isOffer).map(p => (
                     <tr key={p.id} className="hover:bg-white/[0.01] group">
                       <td className="p-8"><div className="flex items-center gap-6"><img src={p.image} className="w-16 h-16 rounded-2xl object-cover border border-white/5" /><div className="font-black uppercase text-lg">{p.name}<span className="block text-[10px] text-zinc-600 not-italic mt-1 uppercase tracking-tighter">{p.category} • {p.stock} Units</span></div></div></td>
-                      <td className="p-8">
-                        {p.expiryDate ? (
-                          <div className="flex flex-col gap-2">
-                            <span className="text-amber-500 font-black text-xs">{new Date(p.expiryDate).toLocaleString()}</span>
-                            <button onClick={() => handleExtendTime(p.id, p.expiryDate)} className="text-[10px] bg-white/10 w-fit px-3 py-1 rounded-full hover:bg-white hover:text-black transition-all font-bold uppercase">Extend Time +</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => handleExtendTime(p.id, null)} className="text-[10px] text-zinc-500 border border-zinc-800 px-3 py-1 rounded-full uppercase">Set Timer</button>
-                        )}
-                      </td>
                       <td className="p-8 font-black text-xl">LKR {p.sellingPrice?.toLocaleString()}</td>
                       <td className="p-8"><button onClick={() => deleteItem(p.id, "products")} className="text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={22} /></button></td>
                     </tr>
@@ -331,7 +284,43 @@ const Admin = () => {
           </div>
         )}
 
-        {/* HERO BANNERS & SETUP TABS පරණ විදියටම තියෙනවා */}
+        {activeTab === 'offers' && (
+          <div className="space-y-10 animate-in fade-in duration-700">
+            <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Special Offers</h1>
+            <div className="bg-zinc-900/30 backdrop-blur-md border border-white/10 p-6 md:p-12 rounded-[50px] space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-black/40 p-8 rounded-[35px] border border-white/5">
+                <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-12 text-center hover:border-amber-500/50">
+                  <input type="file" onChange={(e) => handleImageUpload(e, 'offer')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  {offerImage ? <img src={offerImage} className="w-full h-40 object-contain rounded-xl" /> : <div className="flex flex-col items-center"><ImageIcon className="text-zinc-500 mb-2" size={40} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Offer Image</p></div>}
+                </div>
+                <div className="space-y-4">
+                  <input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="Offer Name (e.g. RTX 4090 MEGA SALE)" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white" />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-amber-500 uppercase ml-2 flex items-center gap-1 italic"><Timer size={12}/> Set Expiry Time</label>
+                    <input type="datetime-local" value={offerExpiry} onChange={(e) => setOfferExpiry(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white outline-none focus:border-amber-500" />
+                  </div>
+                  <button onClick={handleAddOffer} className="w-full bg-white text-black h-[60px] rounded-2xl font-black hover:bg-amber-500 transition-all uppercase italic text-sm">Publish Special Offer</button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {products.filter(p => p.isOffer).map(offer => (
+                  <div key={offer.id} className="bg-zinc-900/40 border border-white/5 p-6 rounded-[35px] flex items-center gap-6 relative group">
+                    <img src={offer.image} className="w-24 h-24 rounded-2xl object-cover" />
+                    <div>
+                        <p className="font-black italic uppercase text-amber-500">{offer.name}</p>
+                        <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase mt-2">
+                            <Timer size={12}/> {new Date(offer.expiryDate).toLocaleString()}
+                        </div>
+                    </div>
+                    <button onClick={() => deleteItem(offer.id, "products")} className="absolute top-6 right-6 text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'hero' && (
           <div className="space-y-10 animate-in fade-in duration-700">
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Hero Banners</h1>
@@ -340,7 +329,6 @@ const Admin = () => {
                 <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-12 text-center hover:border-amber-500/50">
                   <input type="file" onChange={(e) => handleImageUpload(e, 'slide')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                   {slideImage ? <img src={slideImage} className="w-full h-40 object-contain rounded-xl" alt="Preview" /> : <div className="flex flex-col items-center"><ImageIcon className="text-zinc-500 mb-2" size={40} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Banner Image</p></div>}
-                  {uploadProgress > 0 && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-zinc-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all" style={{ width: `${uploadProgress}%` }}></div></div>}
                 </div>
                 <div className="space-y-4">
                   <input value={slideTitle} onChange={(e) => setSlideTitle(e.target.value)} placeholder="Banner Title" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white" />
