@@ -10,14 +10,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import JsBarcode from 'jsbarcode';
 import SpaceBackground from "../components/SpaceBackground";
-import Swal from 'sweetalert2'; // SweetAlert එකතු කළා
+import Swal from 'sweetalert2'; 
 
 const PCBuilder = ({ cart, setCart }) => {
   const [products, setProducts] = useState([]);
   const [user, setUser] = useState(null);
-  const [selectedComponents, setSelectedComponents] = useState({
-    cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooling: null
-  });
+  const [authLoading, setAuthLoading] = useState(true); // <--- අලුතින් එකතු කළා
+  const Builder = ({ cart, setCart, selectedComponents, setSelectedComponents }) => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [isSocialOpen, setIsSocialOpen] = useState(false);
 
@@ -26,6 +25,7 @@ const PCBuilder = ({ cart, setCart }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setAuthLoading(false); // <--- Firebase එකෙන් user ඉන්නවද නැද්ද කියලා කිව්වම loading නවත්වනවා
     });
     return () => unsubscribe();
   }, [auth]);
@@ -43,11 +43,12 @@ const PCBuilder = ({ cart, setCart }) => {
     setTotalPrice(total);
   }, [selectedComponents]);
 
-  // --- IMPROVED SAVE BUILD LOGIC ---
   const handleSaveBuild = async () => {
+    // 0. තාම Auth චෙක් කරන ගමන් නම් පොඩ්ඩක් ඉන්න කියනවා
+    if (authLoading) return showToast("SYNCING ACCOUNT...", "border-amber-500");
+
     let currentUser = user;
 
-    // 1. ලොග් වෙලා නැත්නම් ලස්සන Popup එකක් පෙන්වනවා
     if (!currentUser) {
       const result = await Swal.fire({
         title: 'LOGIN REQUIRED',
@@ -80,11 +81,9 @@ const PCBuilder = ({ cart, setCart }) => {
       }
     }
 
-    // 2. අයිටම්ස් තෝරලා නැත්නම් සේව් කරන්න දෙන්න එපා
     const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
     if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
 
-    // 3. Firestore එකට බිල්ඩ් එක සේව් කරනවා
     try {
       await addDoc(collection(db, "savedBuilds"), {
         userId: currentUser.uid,
@@ -112,6 +111,7 @@ const PCBuilder = ({ cart, setCart }) => {
     }
   };
 
+  // --- පල්ලෙහා ඔක්කොම ඔයාගේ original code එකමයි ---
   const formatCurrency = (num) => {
     return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
   };
@@ -240,7 +240,9 @@ const PCBuilder = ({ cart, setCart }) => {
             <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center lg:items-end gap-8 animate-reveal-up">
                 <div>
                     <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] tracking-[0.4em] mb-4 uppercase italic">
-                        <Activity size={14} className="animate-pulse" /> Compatibility Engine Active
+                        <Activity size={14} className="animate-pulse" /> 
+                        {/* ලොග් වෙලා ඉන්නවා නම් නම පෙන්වමු */}
+                        {user ? `LOGGED IN AS: ${user.displayName.toUpperCase()}` : "Compatibility Engine Active"}
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none uppercase">PC BUILDER</h1>
                 </div>

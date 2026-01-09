@@ -8,18 +8,16 @@ import {
 } from 'lucide-react';
 import SpaceBackground from "../components/SpaceBackground";
 
-const MyBuilds = ({ setPage }) => {
+const MyBuilds = ({ setPage, setSelectedComponents }) => { // <--- setSelectedComponents එකතු කළා
   const [builds, setBuilds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const auth = getAuth();
 
-  // 1. යූසර් ලොග් වෙලාද කියලා චෙක් කරලා ඒ යූසර්ගේ data විතරක් ගේනවා
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // යූසර්ගේ ID එකට අදාළ බිල්ඩ්ස් විතරක් Query කරනවා
         const q = query(
           collection(db, "savedBuilds"),
           where("userId", "==", currentUser.uid),
@@ -39,6 +37,23 @@ const MyBuilds = ({ setPage }) => {
 
     return () => unsubscribeAuth();
   }, [auth]);
+
+  // Build එක PC Builder එකට load කරන function එක
+  const handleLoadBuild = (build) => {
+    if (setSelectedComponents) {
+      // සේව් කරපු පාට්ස් ටික builder එකේ state එකට දානවා
+      setSelectedComponents(build.components);
+      // Builder පේජ් එකට යවනවා
+      setPage('builder');
+      
+      // පොඩි Toast මැසේජ් එකක් පෙන්වන්න (Optional)
+      const t = document.createElement('div');
+      t.className = `fixed top-24 right-6 bg-amber-500 text-black px-8 py-4 rounded-2xl shadow-2xl z-[150] font-black border-2 border-black uppercase italic animate-bounce`;
+      t.innerHTML = "BUILD LOADED SUCCESSFULLY!";
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+  };
 
   const handleDelete = async (id) => {
     if (window.confirm("ARE YOU SURE YOU WANT TO DELETE THIS BUILD?")) {
@@ -103,7 +118,7 @@ const MyBuilds = ({ setPage }) => {
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] uppercase italic mb-2">
-                      <Calendar size={12} /> {new Date(build.createdAt?.toDate()).toLocaleDateString()}
+                      <Calendar size={12} /> {build.createdAt?.toDate() ? new Date(build.createdAt.toDate()).toLocaleDateString() : 'N/A'}
                     </div>
                     <h3 className="text-2xl font-black italic uppercase group-hover:text-amber-500 transition-colors">{build.buildName}</h3>
                   </div>
@@ -131,8 +146,13 @@ const MyBuilds = ({ setPage }) => {
                     <p className="text-[10px] text-zinc-500 font-black uppercase italic">Total Value</p>
                     <p className="text-2xl font-black text-white italic">LKR {build.totalPrice?.toLocaleString()}</p>
                   </div>
-                  <button className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-black uppercase italic text-xs hover:bg-amber-500 transition-all">
-                    View Details <ChevronRight size={16} />
+                  
+                  {/* View Details බටන් එක Edit Build විදිහට වෙනස් කරලා load logic එක දැම්මා */}
+                  <button 
+                    onClick={() => handleLoadBuild(build)}
+                    className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-black uppercase italic text-xs hover:bg-amber-500 transition-all active:scale-95"
+                  >
+                    Load to Builder <ChevronRight size={16} />
                   </button>
                 </div>
 
