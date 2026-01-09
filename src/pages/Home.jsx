@@ -72,13 +72,20 @@ export default function Home({ setPage, cart, setCart }) {
   const [isSocialOpen, setIsSocialOpen] = useState(false);
 
   useEffect(() => {
-    // Featured Products Query
-    const pq = query(collection(db, "products"), where("isOffer", "==", false), orderBy("createdAt", "desc"), limit(6));
+    // Featured Products Query - මෙතැනදී offers නොවන සහ පරණ සියලුම බඩු පෙන්වන්න සකස් කළා
+    const pq = query(
+      collection(db, "products"), 
+      orderBy("createdAt", "desc")
+    );
+    
     const unsubscribeProducts = onSnapshot(pq, (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Offer එකක් නොවන (isOffer true නොවන) පළමු බඩු 6 විතරක් filter කරගන්නවා
+      const featured = allProducts.filter(p => p.isOffer !== true).slice(0, 6);
+      setProducts(featured);
     });
 
-    // Slides Query (Make sure your admin adds expiryDate to slides if needed)
+    // Slides Query
     const sq = query(collection(db, "hero_slides"), orderBy("order", "asc"));
     const unsubscribeSlides = onSnapshot(sq, (snapshot) => {
       setSlides(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -120,7 +127,7 @@ export default function Home({ setPage, cart, setCart }) {
                 <span className="text-amber-500 inline-block">Dream Computer</span>
               </h1>
 
-              {/* MOBILE SLIDER WITH PER-SLIDE TIMER */}
+              {/* MOBILE SLIDER */}
               <div className="lg:hidden w-full h-[320px] relative my-8 flex justify-center items-center">
                 <div className="absolute w-[200px] h-[200px] bg-amber-500/10 blur-[80px] rounded-full animate-pulse"></div>
                 {slides.map((slide, index) => (
@@ -157,7 +164,7 @@ export default function Home({ setPage, cart, setCart }) {
               </div>
             </div>
 
-            {/* DESKTOP SLIDER WITH PER-SLIDE TIMER */}
+            {/* DESKTOP SLIDER */}
             <div className="hidden lg:flex justify-center items-center relative h-[550px] w-full">
               <div className="absolute w-[400px] h-[400px] bg-amber-500/20 blur-[120px] rounded-full animate-pulse"></div>
               {slides.map((slide, index) => (
@@ -191,20 +198,25 @@ export default function Home({ setPage, cart, setCart }) {
           </div>
         </div>
 
-        {/* FEATURED PRODUCTS */}
+        {/* FEATURED HARDWARE SECTION */}
         <section className="w-full px-4 lg:px-20 py-24">
           <h2 className="text-2xl md:text-5xl font-black mb-12 italic uppercase border-l-8 border-amber-500 pl-4 md:pl-6">FEATURED HARDWARE</h2>
           <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 md:gap-8">
-            {products.map((p, i) => (
-              <div key={p.id} className="bg-zinc-900/40 border border-white/5 p-2 md:p-6 rounded-[15px] md:rounded-[35px] backdrop-blur-xl hover:border-amber-500/50 transition-all shadow-2xl group cursor-pointer hover:scale-105 duration-300">
-                <div className="aspect-square bg-black/40 rounded-lg md:rounded-2xl mb-2 md:mb-6 overflow-hidden flex items-center justify-center">
-                  <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" alt={p.name} />
+            {products.length > 0 ? (
+              products.map((p, i) => (
+                <div key={p.id} className="bg-zinc-900/40 border border-white/5 p-2 md:p-6 rounded-[15px] md:rounded-[35px] backdrop-blur-xl hover:border-amber-500/50 transition-all shadow-2xl group cursor-pointer hover:scale-105 duration-300">
+                  <div className="aspect-square bg-black/40 rounded-lg md:rounded-2xl mb-2 md:mb-6 overflow-hidden flex items-center justify-center">
+                    <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" alt={p.name} />
+                  </div>
+                  <h3 className="font-bold text-[8px] md:text-xl mb-0.5 md:mb-2 truncate uppercase italic">{p.name}</h3>
+                  <p className="text-[10px] md:text-2xl font-black mb-2 md:mb-6 text-amber-500 italic">LKR {p.sellingPrice?.toLocaleString()}</p>
+                  <button onClick={() => setCart([...cart, p])} className="w-full py-1.5 md:py-4 bg-white text-black rounded-md md:rounded-xl font-black hover:bg-amber-500 transition-all uppercase italic text-[7px] md:text-sm">ADD</button>
                 </div>
-                <h3 className="font-bold text-[8px] md:text-xl mb-0.5 md:mb-2 truncate uppercase italic">{p.name}</h3>
-                <p className="text-[10px] md:text-2xl font-black mb-2 md:mb-6 text-amber-500 italic">LKR {p.sellingPrice?.toLocaleString()}</p>
-                <button onClick={() => setCart([...cart, p])} className="w-full py-1.5 md:py-4 bg-white text-black rounded-md md:rounded-xl font-black hover:bg-amber-500 transition-all uppercase italic text-[7px] md:text-sm">ADD</button>
-              </div>
-            ))}
+              ))
+            ) : (
+              // Loading state පෙන්වීමට
+              <div className="col-span-full text-center text-gray-500 italic">No hardware found...</div>
+            )}
           </div>
         </section>
 
