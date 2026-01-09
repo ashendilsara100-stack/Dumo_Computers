@@ -11,31 +11,43 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [cart, setCart] = useState([]);
   
-  // 1. බිල්ඩර් එකේ සිලෙක්ට් කරන පාර්ට්ස් ටික මෙතන තියාගන්නවා
-  // එතකොට MyBuilds එකෙන් මේක අප්ඩේට් කරපු ගමන් Builder එකට ඒක පේනවා
   const [selectedComponents, setSelectedComponents] = useState({
-    cpu: null,
-    motherboard: null,
-    ram: null,
-    gpu: null,
-    storage: null,
-    psu: null,
-    case: null,
-    cooling: null
+    cpu: null, motherboard: null, ram: null, gpu: null,
+    storage: null, psu: null, case: null, cooling: null
   });
 
-  useEffect(() => {
-    if (window.location.pathname === "/admin") {
-      setPage("admin");
-    }
+  // රහස් URL එක මෙතන Define කරන්න
+  const ADMIN_SECRET_PATH = "dumo-priv-99";
 
-    const handleContextMenu = (e) => {
-      e.preventDefault();
+  useEffect(() => {
+    // Hash එක පරීක්ෂා කරලා පේජ් එක පෙන්වන ලොජික් එක
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#/", "");
+      
+      if (hash === ADMIN_SECRET_PATH) {
+        setPage("admin");
+      } else if (hash === "shop") {
+        setPage("shop");
+      } else if (hash === "builder") {
+        setPage("builder");
+      } else if (hash === "mybuilds") {
+        setPage("mybuilds");
+      } else if (hash === "checkout") {
+        setPage("checkout");
+      } else {
+        setPage("home");
+      }
     };
 
+    // මුලින්ම ලෝඩ් වෙද්දී සහ Hash එක වෙනස් වෙද්දී මේක ක්‍රියාත්මක වෙනවා
+    window.addEventListener("hashchange", handleHashChange);
+    handleHashChange();
+
+    const handleContextMenu = (e) => { e.preventDefault(); };
     document.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
+      window.removeEventListener("hashchange", handleHashChange);
       document.removeEventListener("contextmenu", handleContextMenu);
     };
   }, []);
@@ -48,43 +60,26 @@ export default function App() {
   return (
     <div className="min-h-screen bg-black text-white select-none">
       
+      {/* Admin පේජ් එකේදී Navbar එක හංගනවා */}
       {page !== "admin" && (
         <Navbar 
-          setPage={setPage} 
+          setPage={(p) => {
+             // බටන් එකක් එබූ විට URL එකේ hash එක වෙනස් කරනවා
+             window.location.hash = `#/${p}`;
+          }} 
           cartCount={cart.length} 
           currentPage={page} 
         />
       )}
       
       <main>
-        {page === "home" && (
-          <Home setPage={setPage} cart={cart} setCart={setCart} />
-        )}
-        
+        {page === "home" && <Home setPage={(p) => window.location.hash = `#/${p}`} cart={cart} setCart={setCart} />}
         {page === "shop" && <Shop cart={cart} setCart={setCart} />}
+        {page === "builder" && <Builder cart={cart} setCart={setCart} selectedComponents={selectedComponents} setSelectedComponents={setSelectedComponents} />}
+        {page === "mybuilds" && <MyBuilds setPage={(p) => window.location.hash = `#/${p}`} setSelectedComponents={setSelectedComponents} />}
+        {page === "checkout" && <Checkout cart={cart} removeFromCart={removeFromCart} setPage={(p) => window.location.hash = `#/${p}`} />}
         
-        {page === "builder" && (
-          <Builder 
-            cart={cart} 
-            setCart={setCart} 
-            // 2. බිල්ඩර් එකට මේ ස්ටේට් දෙක පාස් කරන්න
-            selectedComponents={selectedComponents}
-            setSelectedComponents={setSelectedComponents}
-          />
-        )}
-        
-        {page === "mybuilds" && (
-          <MyBuilds 
-            setPage={setPage} 
-            // 3. MyBuilds එකටත් මේක පාස් කරන්න (ලෝඩ් කරන්න ඕනේ නිසා)
-            setSelectedComponents={setSelectedComponents} 
-          />
-        )}
-        
-        {page === "checkout" && (
-          <Checkout cart={cart} removeFromCart={removeFromCart} setPage={setPage} />
-        )}
-        
+        {/* Admin පේජ් එක පෙන්වන්නේ රහස් Hash එක ආවොත් විතරයි */}
         {page === "admin" && <Admin />}
       </main>
 
