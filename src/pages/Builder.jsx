@@ -12,11 +12,15 @@ import JsBarcode from 'jsbarcode';
 import SpaceBackground from "../components/SpaceBackground";
 import Swal from 'sweetalert2'; 
 
-const PCBuilder = ({ cart, setCart }) => {
+// Props විදිහට selectedComponents සහ setSelectedComponents ලබාගන්නවා
+const PCBuilder = ({ cart, setCart, selectedComponents, setSelectedComponents }) => {
   const [products, setProducts] = useState([]);
   const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true); // <--- අලුතින් එකතු කළා
-  const Builder = ({ cart, setCart, selectedComponents, setSelectedComponents }) => {
+  const [authLoading, setAuthLoading] = useState(true);
+  
+  // මෙතන තිබුණු පරණ useState({ cpu: null... }) පේළිය අයින් කළා.
+  // දැන් ඒක App.jsx එකෙන් තමයි පාලනය වෙන්නේ.
+
   const [totalPrice, setTotalPrice] = useState(0);
   const [isSocialOpen, setIsSocialOpen] = useState(false);
 
@@ -25,7 +29,7 @@ const PCBuilder = ({ cart, setCart }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setAuthLoading(false); // <--- Firebase එකෙන් user ඉන්නවද නැද්ද කියලා කිව්වම loading නවත්වනවා
+      setAuthLoading(false);
     });
     return () => unsubscribe();
   }, [auth]);
@@ -38,13 +42,13 @@ const PCBuilder = ({ cart, setCart }) => {
   }, []);
 
   useEffect(() => {
+    // selectedComponents වෙනස් වෙද්දී total එක හැදෙනවා
     const total = Object.values(selectedComponents).reduce((sum, component) => 
       sum + (Number(component?.sellingPrice) || 0), 0);
     setTotalPrice(total);
   }, [selectedComponents]);
 
   const handleSaveBuild = async () => {
-    // 0. තාම Auth චෙක් කරන ගමන් නම් පොඩ්ඩක් ඉන්න කියනවා
     if (authLoading) return showToast("SYNCING ACCOUNT...", "border-amber-500");
 
     let currentUser = user;
@@ -111,7 +115,6 @@ const PCBuilder = ({ cart, setCart }) => {
     }
   };
 
-  // --- පල්ලෙහා ඔක්කොම ඔයාගේ original code එකමයි ---
   const formatCurrency = (num) => {
     return new Intl.NumberFormat('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
   };
@@ -153,8 +156,8 @@ const PCBuilder = ({ cart, setCart }) => {
 
   const handleDownloadQuotation = async () => {
     try {
-      const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
-      if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+      const selectedItemsArr = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+      if (selectedItemsArr.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
 
       const counterRef = doc(db, "settings", "quotationCounter");
       let nextNo;
@@ -176,9 +179,6 @@ const PCBuilder = ({ cart, setCart }) => {
       const dateStr = now.toLocaleDateString('en-GB'); 
       const quoteNo = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${nextNo}`;
 
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, quoteNo, { format: "CODE128", displayValue: false });
-
       docPdf.setFont("helvetica", "bold");
       docPdf.setFontSize(40);
       docPdf.text("DUMO", 15, 25);
@@ -193,7 +193,7 @@ const PCBuilder = ({ cart, setCart }) => {
       docPdf.text("NO. 302/6, NEW KANDY ROAD, WELIWERIYA", 195, 25, { align: "right" });
 
       const tableRows = [];
-      selectedItems.forEach(([cat, comp]) => {
+      selectedItemsArr.forEach(([cat, comp]) => {
         tableRows.push([comp.name.toUpperCase(), "1.00 QTY", formatCurrency(comp.sellingPrice), formatCurrency(comp.sellingPrice)]);
         tableRows.push([{ content: `03 Month Warranty - ${dateStr}`, styles: { fontSize: 8, textColor: [50, 50, 50], cellPadding: { top: -1, left: 2 } } }, "", "", ""]);
       });
@@ -215,10 +215,10 @@ const PCBuilder = ({ cart, setCart }) => {
   };
 
   const handleShareBuild = () => {
-    const selectedItems = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
-    if (selectedItems.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
+    const selectedItemsArr = Object.entries(selectedComponents).filter(([_, comp]) => comp !== null);
+    if (selectedItemsArr.length === 0) return showToast("SELECT COMPONENTS FIRST!", "border-red-500");
     const buildText = `🖥️ *DUMO PC BUILD SUMMARY*\n` +
-      selectedItems.map(([cat, comp]) => `• *${componentLabels[cat]}*: ${comp.name}`).join('\n') +
+      selectedItemsArr.map(([cat, comp]) => `• *${componentLabels[cat]}*: ${comp.name}`).join('\n') +
       `\n💰 *Total: LKR ${totalPrice.toLocaleString()}*`;
     navigator.clipboard.writeText(buildText).then(() => showToast("BUILD COPIED!", "border-green-500"));
   };
@@ -241,7 +241,6 @@ const PCBuilder = ({ cart, setCart }) => {
                 <div>
                     <div className="flex items-center gap-2 text-amber-500 font-black text-[10px] tracking-[0.4em] mb-4 uppercase italic">
                         <Activity size={14} className="animate-pulse" /> 
-                        {/* ලොග් වෙලා ඉන්නවා නම් නම පෙන්වමු */}
                         {user ? `LOGGED IN AS: ${user.displayName.toUpperCase()}` : "Compatibility Engine Active"}
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none uppercase">PC BUILDER</h1>
