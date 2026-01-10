@@ -39,9 +39,9 @@ const SlideTimer = ({ expiryDate }) => {
   if (!expiryDate || isExpired) return null;
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-red-600/80 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full flex items-center gap-2 shadow-xl animate-bounce">
-      <Clock size={12} className="text-white" />
-      <span className="text-[10px] font-black text-white italic">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-red-600/90 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-2xl animate-bounce">
+      <Clock size={14} className="text-white" />
+      <span className="text-xs font-black text-white italic tracking-tighter">
         ENDS: {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.mins).padStart(2, '0')}:{String(timeLeft.secs).padStart(2, '0')}
       </span>
     </div>
@@ -62,7 +62,7 @@ const TypeWriter = ({ text, delay = 100 }) => {
     }
   }, [currentIndex, delay, text]);
 
-  return <span>{currentText}<span className="animate-pulse">|</span></span>;
+  return <span>{currentText}<span className="animate-pulse opacity-50">|</span></span>;
 };
 
 export default function Home({ setPage, cart, setCart }) {
@@ -72,7 +72,6 @@ export default function Home({ setPage, cart, setCart }) {
   const [isSocialOpen, setIsSocialOpen] = useState(false);
 
   useEffect(() => {
-    // Featured Products Query - මෙතැනදී offers නොවන සහ පරණ සියලුම බඩු පෙන්වන්න සකස් කළා
     const pq = query(
       collection(db, "products"), 
       orderBy("createdAt", "desc")
@@ -80,12 +79,10 @@ export default function Home({ setPage, cart, setCart }) {
     
     const unsubscribeProducts = onSnapshot(pq, (snapshot) => {
       const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Offer එකක් නොවන (isOffer true නොවන) පළමු බඩු 6 විතරක් filter කරගන්නවා
       const featured = allProducts.filter(p => p.isOffer !== true).slice(0, 6);
       setProducts(featured);
     });
 
-    // Slides Query
     const sq = query(collection(db, "hero_slides"), orderBy("order", "asc"));
     const unsubscribeSlides = onSnapshot(sq, (snapshot) => {
       setSlides(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -114,73 +111,55 @@ export default function Home({ setPage, cart, setCart }) {
       <SpaceBackground />
 
       <div className="relative z-10 w-full">
-        <section className="min-h-[90vh] flex items-center px-6 lg:px-20 w-full pt-20">
-          <div className="w-full grid lg:grid-cols-2 gap-8 items-center max-w-[1600px] mx-auto">
+        {/* HERO SECTION */}
+        <section className="min-h-screen flex items-center px-6 lg:px-20 w-full pt-10">
+          <div className="w-full grid lg:grid-cols-2 gap-12 items-center max-w-[1600px] mx-auto">
             
-            <div className="animate-reveal-up z-20 text-center lg:text-left">
-              <span className="bg-amber-500/10 border border-amber-500/30 text-amber-500 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest mb-6 inline-block shadow-lg">
+            <div className="animate-reveal-up z-20 text-center lg:text-left order-2 lg:order-1">
+              <span className="bg-amber-500/10 border border-amber-500/30 text-amber-500 px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.3em] mb-8 inline-block shadow-[0_0_20px_rgba(245,158,11,0.1)]">
                 PREMIUM GAMING GEAR
               </span>
 
-              <h1 className="text-5xl md:text-8xl font-black mb-6 tracking-tighter leading-[0.9] uppercase italic">
+              <h1 className="text-6xl md:text-8xl xl:text-9xl font-black mb-8 tracking-tighter leading-[0.85] uppercase italic">
                 <TypeWriter text="Build Your" delay={80} /><br />
-                <span className="text-amber-500 inline-block">Dream Computer</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-500 to-orange-600 drop-shadow-sm">
+                  Dream Computer
+                </span>
               </h1>
 
-              {/* MOBILE SLIDER */}
-              <div className="lg:hidden w-full h-[320px] relative my-8 flex justify-center items-center">
-                <div className="absolute w-[200px] h-[200px] bg-amber-500/10 blur-[80px] rounded-full animate-pulse"></div>
-                {slides.map((slide, index) => (
-                  <div key={slide.id} className={`absolute transition-all duration-700 ${index === activeSlide ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"}`}>
-                    <div className="relative">
-                      <SlideTimer expiryDate={slide.expiryDate} />
-                      <img 
-                        src={slide.image} 
-                        className="w-full max-w-[250px] drop-shadow-2xl animate-float cursor-pointer" 
-                        onClick={() => handleBannerClick(slide)} 
-                        alt="offer"
-                      />
-                    </div>
-                    {slide.title && (
-                      <div className="mt-4 bg-zinc-900/90 border border-amber-500/30 px-4 py-1 rounded-full text-[10px] text-amber-500 font-black italic uppercase text-center">
-                        {slide.title}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-gray-400 text-lg md:text-xl mb-10 italic max-w-lg mx-auto lg:mx-0">
-                Sri Lanka's elite destination for high-end hardware.
+              <p className="text-zinc-400 text-lg md:text-xl mb-12 italic max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                Sri Lanka's elite destination for high-end hardware and custom liquid-cooled rigs.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <button onClick={() => setPage("shop")} className="px-10 py-4 bg-white text-black font-black rounded-xl hover:bg-amber-500 transition-all uppercase italic flex items-center justify-center gap-2">
-                  SHOP NOW <ArrowRight size={20} />
+              <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
+                <button onClick={() => setPage("shop")} className="px-12 py-5 bg-white text-black font-black rounded-2xl hover:bg-amber-500 transition-all duration-300 uppercase italic flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(255,255,255,0.1)] hover:shadow-amber-500/20 group">
+                  SHOP NOW <ArrowRight size={22} className="group-hover:translate-x-2 transition-transform" />
                 </button>
-                <button onClick={() => setPage("builder")} className="px-10 py-4 border-2 border-white/20 font-black rounded-xl hover:bg-white/10 uppercase italic">
+                <button onClick={() => setPage("builder")} className="px-12 py-5 border-2 border-white/10 font-black rounded-2xl hover:bg-white/5 hover:border-white/30 transition-all duration-300 uppercase italic backdrop-blur-sm">
                   BUILD PC
                 </button>
               </div>
             </div>
 
-            {/* DESKTOP SLIDER */}
-            <div className="hidden lg:flex justify-center items-center relative h-[550px] w-full">
-              <div className="absolute w-[400px] h-[400px] bg-amber-500/20 blur-[120px] rounded-full animate-pulse"></div>
+            {/* DESKTOP/MOBILE SLIDER */}
+            <div className="relative order-1 lg:order-2 flex justify-center items-center h-[400px] md:h-[600px]">
+              {/* Background Glow */}
+              <div className="absolute w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-amber-500/10 blur-[120px] rounded-full animate-pulse"></div>
+              
               {slides.map((slide, index) => (
-                <div key={slide.id} className={`absolute transition-all duration-1000 flex flex-col items-center ${index === activeSlide ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
-                  <div className="relative group">
+                <div key={slide.id} className={`absolute transition-all duration-1000 w-full flex flex-col items-center ${index === activeSlide ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"}`}>
+                  <div className="relative group perspective-1000">
                     <SlideTimer expiryDate={slide.expiryDate} />
                     <img
                       src={slide.image}
-                      className="w-full max-w-[480px] xl:max-w-[550px] relative z-10 drop-shadow-2xl animate-float cursor-pointer group-hover:scale-105 transition-transform"
+                      className="w-full max-w-[320px] md:max-w-[550px] relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-float cursor-pointer transition-transform duration-500"
                       onClick={() => handleBannerClick(slide)}
                       alt={slide.title}
                     />
                   </div>
                   {slide.title && (
-                    <div className="mt-6 bg-zinc-900/80 backdrop-blur-md border border-amber-500/30 px-6 py-2 rounded-2xl shadow-2xl">
-                      <p className="text-amber-500 font-black italic uppercase text-sm tracking-widest">{slide.title}</p>
+                    <div className="mt-8 bg-zinc-900/40 backdrop-blur-xl border border-white/10 px-8 py-3 rounded-2xl shadow-2xl transform -skew-x-12">
+                      <p className="text-amber-500 font-black italic uppercase text-xs md:text-sm tracking-[0.2em] skew-x-12">{slide.title}</p>
                     </div>
                   )}
                 </div>
@@ -189,68 +168,81 @@ export default function Home({ setPage, cart, setCart }) {
           </div>
         </section>
 
-        {/* TRUST BADGES */}
-        <div className="bg-white text-black py-10 px-6 font-black uppercase italic shadow-2xl relative z-20">
-          <div className="w-full lg:px-14 flex flex-wrap justify-center md:justify-around gap-8 text-sm md:text-base">
-            <div className="flex items-center gap-2"><Truck size={22} /> ISLANDWIDE DELIVERY</div>
-            <div className="flex items-center gap-2"><ShieldCheck size={22} /> GENUINE WARRANTY</div>
-            <div className="flex items-center gap-2"><Zap size={22} /> TECH SUPPORT</div>
+        {/* TRUST BADGES - Cleaned up */}
+        <div className="border-y border-white/5 bg-zinc-950/50 backdrop-blur-md py-12 px-6 relative z-20">
+          <div className="max-w-[1400px] mx-auto flex flex-wrap justify-center md:justify-between gap-10 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
+            <div className="flex items-center gap-4 hover:text-white transition-colors cursor-default"><Truck size={20} className="text-amber-500" /> ISLANDWIDE DELIVERY</div>
+            <div className="flex items-center gap-4 hover:text-white transition-colors cursor-default"><ShieldCheck size={20} className="text-amber-500" /> GENUINE WARRANTY</div>
+            <div className="flex items-center gap-4 hover:text-white transition-colors cursor-default"><Zap size={20} className="text-amber-500" /> TECH SUPPORT</div>
           </div>
         </div>
 
         {/* FEATURED HARDWARE SECTION */}
-        <section className="w-full px-4 lg:px-20 py-24">
-          <h2 className="text-2xl md:text-5xl font-black mb-12 italic uppercase border-l-8 border-amber-500 pl-4 md:pl-6">FEATURED HARDWARE</h2>
-          <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-2 md:gap-8">
+        <section className="w-full px-4 lg:px-20 py-32 bg-gradient-to-b from-transparent to-zinc-950/30">
+          <div className="flex items-end justify-between mb-16 px-4">
+             <div>
+                <h2 className="text-3xl md:text-6xl font-black italic uppercase leading-none">Featured</h2>
+                <h2 className="text-3xl md:text-6xl font-black italic uppercase text-amber-500 leading-none">Hardware</h2>
+             </div>
+             <div className="hidden md:block h-1 w-32 bg-amber-500 mb-2"></div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 md:gap-6">
             {products.length > 0 ? (
               products.map((p, i) => (
-                <div key={p.id} className="bg-zinc-900/40 border border-white/5 p-2 md:p-6 rounded-[15px] md:rounded-[35px] backdrop-blur-xl hover:border-amber-500/50 transition-all shadow-2xl group cursor-pointer hover:scale-105 duration-300">
-                  <div className="aspect-square bg-black/40 rounded-lg md:rounded-2xl mb-2 md:mb-6 overflow-hidden flex items-center justify-center">
+                <div key={p.id} className="bg-zinc-900/30 border border-white/5 p-4 md:p-6 rounded-[24px] md:rounded-[32px] backdrop-blur-sm hover:border-amber-500/40 transition-all duration-500 group cursor-pointer flex flex-col h-full">
+                  <div className="aspect-square bg-black/20 rounded-2xl mb-6 overflow-hidden flex items-center justify-center p-4">
                     <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" alt={p.name} />
                   </div>
-                  <h3 className="font-bold text-[8px] md:text-xl mb-0.5 md:mb-2 truncate uppercase italic">{p.name}</h3>
-                  <p className="text-[10px] md:text-2xl font-black mb-2 md:mb-6 text-amber-500 italic">LKR {p.sellingPrice?.toLocaleString()}</p>
-                  <button onClick={() => setCart([...cart, p])} className="w-full py-1.5 md:py-4 bg-white text-black rounded-md md:rounded-xl font-black hover:bg-amber-500 transition-all uppercase italic text-[7px] md:text-sm">ADD</button>
+                  <h3 className="font-bold text-xs md:text-sm mb-2 truncate uppercase italic text-zinc-300">{p.name}</h3>
+                  <p className="text-lg md:text-xl font-black mb-6 text-amber-500 italic mt-auto">LKR {p.sellingPrice?.toLocaleString()}</p>
+                  <button onClick={() => setCart([...cart, p])} className="w-full py-3 bg-white text-black rounded-xl font-black hover:bg-amber-500 transition-all uppercase italic text-[10px] md:text-xs">ADD TO CART</button>
                 </div>
               ))
             ) : (
-              // Loading state පෙන්වීමට
-              <div className="col-span-full text-center text-gray-500 italic">No hardware found...</div>
+              <div className="col-span-full py-20 text-center text-zinc-600 italic tracking-widest uppercase">Initializing Systems...</div>
             )}
           </div>
         </section>
 
         {/* CTA SECTION */}
-        <section className="px-6 lg:px-20 py-20">
-          <div className="w-full max-w-[1600px] mx-auto bg-amber-500 py-16 md:py-24 px-8 rounded-[50px] md:rounded-[70px] text-black text-center relative overflow-hidden shadow-2xl">
-            <h2 className="text-4xl md:text-7xl font-black mb-10 italic uppercase leading-[0.9]">READY TO BUILD <br className="hidden md:block" /> YOUR DREAM RIG?</h2>
-            <a href="https://wa.me/94742299006" target="_blank" rel="noreferrer">
-              <button className="bg-black text-white px-10 py-5 rounded-2xl font-black text-lg md:text-xl hover:scale-110 transition-all shadow-2xl uppercase italic">GET A QUOTE NOW</button>
+        <section className="px-6 lg:px-20 py-24">
+          <div className="w-full max-w-[1400px] mx-auto bg-amber-500 py-20 px-8 rounded-[40px] md:rounded-[60px] text-black text-center relative overflow-hidden shadow-[0_20px_80px_rgba(245,158,11,0.2)] group">
+            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+            <h2 className="text-5xl md:text-8xl font-black mb-12 italic uppercase leading-[0.85] relative z-10">READY TO BUILD <br /> YOUR DREAM RIG?</h2>
+            <a href="https://wa.me/94742299006" target="_blank" rel="noreferrer" className="relative z-10">
+              <button className="bg-black text-white px-12 py-6 rounded-2xl font-black text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl uppercase italic">GET A FREE QUOTE</button>
             </a>
           </div>
         </section>
       </div>
 
       {/* SOCIAL FLOATING PANEL */}
-      <div className="fixed bottom-6 right-6 z-[100]">
+      <div className="fixed bottom-8 right-8 z-[100]">
         {isSocialOpen && (
-          <div className="flex flex-col gap-3 mb-4 animate-reveal-up">
-            <a href="#" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all text-white"><MapPinned size={20} /></a>
-            <a href="https://www.facebook.com/share/1Enu9r1rLW/" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all text-white"><Facebook size={20} /></a>
-            <a href="https://www.tiktok.com/@dumocomputers" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all text-white"><Music2 size={20} /></a>
-            <a href="https://wa.me/94742299006" className="w-12 h-12 bg-zinc-900 border border-white/10 rounded-xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all text-white"><MessageCircle size={20} /></a>
+          <div className="flex flex-col gap-4 mb-6 animate-reveal-up">
+            {[
+              { icon: <MapPinned size={20} />, href: "#" },
+              { icon: <Facebook size={20} />, href: "https://www.facebook.com/share/1Enu9r1rLW/" },
+              { icon: <Music2 size={20} />, href: "https://www.tiktok.com/@dumocomputers" },
+              { icon: <MessageCircle size={20} />, href: "https://wa.me/94742299006" }
+            ].map((social, i) => (
+              <a key={i} href={social.href} className="w-14 h-14 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl flex items-center justify-center hover:bg-amber-500 hover:text-black transition-all text-white shadow-xl translate-x-1">
+                {social.icon}
+              </a>
+            ))}
           </div>
         )}
-        <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-14 h-14 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all">
-          {isSocialOpen ? <X size={26} /> : <Share2 size={26} />}
+        <button onClick={() => setIsSocialOpen(!isSocialOpen)} className="w-16 h-16 bg-amber-500 text-black rounded-2xl flex items-center justify-center shadow-[0_10px_40px_rgba(245,158,11,0.4)] hover:scale-110 active:scale-95 transition-all">
+          {isSocialOpen ? <X size={28} /> : <Share2 size={28} />}
         </button>
       </div>
 
       <style jsx>{`
-        @keyframes reveal-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
-        .animate-reveal-up { animation: reveal-up 0.5s ease-out both; }
-        .animate-float { animation: float 5s ease-in-out infinite; }
+        @keyframes reveal-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(1deg); } }
+        .animate-reveal-up { animation: reveal-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+        .animate-float { animation: float 6s ease-in-out infinite; }
       `}</style>
     </div>
   );
