@@ -33,7 +33,7 @@ const Admin = () => {
   const [buyingPrice, setBuyingPrice] = useState("");
   const [sellingPrice, setSellingPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [category, setCategory] = useState(""); // Lowercase value save wenawa
+  const [category, setCategory] = useState(""); 
   const [image, setImage] = useState("");
 
   // Specs State
@@ -111,6 +111,9 @@ const Admin = () => {
         stock: Number(stock),
         category: category, 
         image,
+        // PC Builder Compatibility සඳහා ramType සහ socket නිවැරදිව map කිරීම
+        ramType: specs.ddr || null, 
+        socket: specs.socket || null,
         specs: specs,
         isOffer: false,
         createdAt: serverTimestamp()
@@ -251,7 +254,7 @@ const Admin = () => {
                 <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-8 text-center hover:border-amber-500/50">
                   <input type="file" onChange={(e) => handleImageUpload(e, 'product')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                   {image ? <img src={image} className="w-full h-40 object-contain rounded-xl" alt="Preview" /> : <div className="flex flex-col items-center"><Upload className="text-zinc-500 mb-2" size={30} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Image</p></div>}
-                  {uploadProgress > 0 && <div className="absolute bottom-0 left-0 h-1 bg-amber-500 transition-all" style={{width: `${uploadProgress}%`}}></div>}
+                  {uploadProgress > 0 && <div className="absolute bottom-4 left-4 right-4 h-1.5 bg-zinc-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all duration-300" style={{width: `${uploadProgress}%`}}></div></div>}
                 </div>
                 <div className="space-y-4">
                     <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Product Name" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-white" />
@@ -272,18 +275,17 @@ const Admin = () => {
                 </div>
               </div>
 
-              {/* Dynamic Specs Section - Updated Logic */}
               {category && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-amber-500/10 border border-amber-500/20 rounded-[30px] animate-reveal-up">
                   {(category === "ram" || category === "motherboard") && (
                     <select value={specs.ddr} onChange={(e) => setSpecs({...specs, ddr: e.target.value})} className="bg-black border border-amber-500/30 p-4 rounded-xl text-xs font-black uppercase text-amber-500 outline-none">
-                      <option value="">Select DDR</option>
+                      <option value="">Select DDR (ramType)</option>
                       <option value="DDR3">DDR3</option>
                       <option value="DDR4">DDR4</option>
                       <option value="DDR5">DDR5</option>
                     </select>
                   )}
-                  {(category.includes("processor") || category === "motherboard") && (
+                  {(category.includes("cpu") || category.includes("processor") || category === "motherboard" || category === "cooling") && (
                     <input placeholder="Socket (e.g. AM4, LGA1700)" value={specs.socket} onChange={(e) => setSpecs({...specs, socket: e.target.value})} className="bg-black border border-white/10 p-4 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-amber-500" />
                   )}
                   {(category === "storage" || category === "ram") && (
@@ -323,9 +325,8 @@ const Admin = () => {
                             {p.name}
                             <span className="block text-[10px] text-zinc-600 not-italic uppercase mt-1">
                               {p.category} • {p.brand} • {p.stock} Units
-                              {p.specs?.ddr && ` • ${p.specs.ddr}`}
-                              {p.specs?.socket && ` • ${p.specs.socket}`}
-                              {p.specs?.capacity && ` • ${p.specs.capacity}`}
+                              {p.ramType && ` • ${p.ramType}`}
+                              {p.socket && ` • ${p.socket}`}
                             </span>
                           </div>
                         </div>
@@ -348,6 +349,7 @@ const Admin = () => {
                 <div className="relative group border-2 border-dashed border-white/10 rounded-[30px] p-12 text-center hover:border-amber-500/50">
                   <input type="file" onChange={(e) => handleImageUpload(e, 'offer')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                   {offerImage ? <img src={offerImage} className="w-full h-40 object-contain rounded-xl" /> : <div className="flex flex-col items-center"><ImageIcon className="text-zinc-500 mb-2" size={40} /><p className="text-[10px] font-black uppercase italic text-zinc-500">Upload Banner Image</p></div>}
+                  {uploadProgress > 0 && <div className="absolute bottom-4 left-4 right-4 h-1.5 bg-zinc-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all duration-300" style={{width: `${uploadProgress}%`}}></div></div>}
                 </div>
                 <div className="space-y-4">
                   <input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="Offer Title (e.g. MEGA SALE)" className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-sm text-white" />
@@ -375,7 +377,7 @@ const Admin = () => {
                     <img src={offer.image} className="w-full h-32 object-contain mb-4" />
                     <p className="font-black italic uppercase text-amber-500 text-center">{offer.title}</p>
                     <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] font-bold uppercase mt-2">
-                        <Timer size={12}/> {new Date(offer.expiryDate).toLocaleDateString()}
+                        <span className="flex items-center gap-1"><Timer size={12}/> {new Date(offer.expiryDate).toLocaleDateString()}</span>
                     </div>
                     <button onClick={() => deleteItem(offer.id, "hero_slides")} className="absolute top-4 right-4 text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={20} /></button>
                   </div>
