@@ -169,7 +169,7 @@ export default function Home({ setPage, cart, setCart }) {
         </section>
 
         {/* TRUST BADGES - Cleaned up */}
-        <div className="border border-white/20 bg-zinc-950/50 backdrop-blur-md py-12 px-6 relative z-20 border-b-2">
+        <div className="border rounded-3xl border-white/20 bg-zinc-950/50 backdrop-blur-md py-12 px-6 relative z-20 border-b-2">
           <div className="max-w-[1400px] border-white/10 mx-auto flex flex-wrap justify-center md:justify-between gap-10 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-zinc-400">
             <div className="flex items-center gap-4 hover:text-white transition-colors cursor-default"><Truck size={20} className="text-amber-500" /> ISLANDWIDE DELIVERY</div>
             <div className="flex items-center gap-4 hover:text-white transition-colors cursor-default"><ShieldCheck size={20} className="text-amber-500" /> GENUINE WARRANTY</div>
