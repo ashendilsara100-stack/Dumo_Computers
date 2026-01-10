@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Package, Lock, Trash2, LogOut, RefreshCw, 
-  Layers, Upload, Menu, X, Image as ImageIcon, Timer, Tag
+  Layers, Upload, Menu, X, Image as ImageIcon, Timer, Tag, Cpu
 } from 'lucide-react';
 import { db } from "../firebase/config";
 import { 
@@ -27,7 +27,7 @@ const Admin = () => {
   const [uploadProgress, setUploadProgress] = useState(0); 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  // Form States
+  // Product Form States
   const [name, setName] = useState("");
   const [selectedBrand, setSelectedBrand] = useState(""); 
   const [buyingPrice, setBuyingPrice] = useState("");
@@ -35,6 +35,15 @@ const Admin = () => {
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
+
+  // --- අලුතින් එක් කළ Specs State එක ---
+  const [specs, setSpecs] = useState({
+    ddr: "",        // RAM & Motherboard සඳහා
+    socket: "",     // CPU & Motherboard සඳහා
+    size: "",       // Case & Cooler සඳහා
+    wattage: "",    // PSU සඳහා
+    capacity: ""    // Storage & RAM සඳහා
+  });
   
   // Offer / Slider States
   const [offerTitle, setOfferTitle] = useState("");
@@ -83,7 +92,6 @@ const Admin = () => {
       onSnapshot(query(collection(db, "brands"), orderBy("name", "asc")), (snap) => {
         setBrands(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
-      // Slider data fetching
       onSnapshot(query(collection(db, "hero_slides"), orderBy("createdAt", "desc")), (snap) => {
         setSlides(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
@@ -97,13 +105,20 @@ const Admin = () => {
     setFormLoading(true);
     try {
       await addDoc(collection(db, "products"), {
-        name, brand: selectedBrand, buyingPrice: Number(buyingPrice),
-        sellingPrice: Number(sellingPrice), stock: Number(stock),
-        category: category.toLowerCase().trim(), image,
+        name, 
+        brand: selectedBrand, 
+        buyingPrice: Number(buyingPrice),
+        sellingPrice: Number(sellingPrice), 
+        stock: Number(stock),
+        category: category.toLowerCase().trim(), 
+        image,
+        specs: specs, // Specs ටික මෙතනින් සේව් වෙනවා
         isOffer: false,
         createdAt: serverTimestamp()
       });
+      // Reset Form
       setName(""); setBuyingPrice(""); setSellingPrice(""); setStock(""); setImage("");
+      setSpecs({ ddr: "", socket: "", size: "", wattage: "", capacity: "" });
       showToast("Product published!");
     } catch (e) { showToast("Error", "error"); }
     setFormLoading(false);
@@ -115,13 +130,12 @@ const Admin = () => {
     }
     setFormLoading(true);
     try {
-      // මෙය hero_slides එකට ඇතුලත් වේ, එවිට Home Slider එකේ පෙන්වයි
       await addDoc(collection(db, "hero_slides"), {
         title: offerTitle,
         image: offerImage,
         expiryDate: new Date(offerExpiry).toISOString(),
         link: offerLink,
-        order: 1, // අලුත්ම එක මුලට ඒමට
+        order: 1,
         isOffer: true,
         createdAt: serverTimestamp()
       });
@@ -245,7 +259,7 @@ const Admin = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-white text-xs">
                             <option value="">Category</option>
-                            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            {categories.map(c => <option key={c.id} value={c.name.toLowerCase()}>{c.name}</option>)}
                         </select>
                         <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="bg-black border border-white/10 p-4 rounded-2xl font-black uppercase italic text-white text-xs">
                             <option value="">Brand</option>
@@ -254,6 +268,32 @@ const Admin = () => {
                     </div>
                 </div>
               </div>
+
+              {/* Dynamic Specs Section */}
+              {category && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-amber-500/5 border border-amber-500/20 rounded-[30px]">
+                  {(category === "ram" || category === "motherboard") && (
+                    <select value={specs.ddr} onChange={(e) => setSpecs({...specs, ddr: e.target.value})} className="bg-black border border-white/10 p-4 rounded-xl text-xs font-black uppercase text-amber-500 outline-none focus:border-amber-500">
+                      <option value="">Select DDR</option>
+                      <option value="DDR3">DDR3</option>
+                      <option value="DDR4">DDR4</option>
+                      <option value="DDR5">DDR5</option>
+                    </select>
+                  )}
+                  {(category === "processor" || category === "motherboard") && (
+                    <input placeholder="Socket (e.g. AM4, LGA1700)" value={specs.socket} onChange={(e) => setSpecs({...specs, socket: e.target.value})} className="bg-black border border-white/10 p-4 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-amber-500" />
+                  )}
+                  {(category === "storage" || category === "ram") && (
+                    <input placeholder="Capacity (e.g. 16GB, 1TB)" value={specs.capacity} onChange={(e) => setSpecs({...specs, capacity: e.target.value})} className="bg-black border border-white/10 p-4 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-amber-500" />
+                  )}
+                  {(category === "case" || category === "cooler") && (
+                    <input placeholder="Size/Type (e.g. ATX, 240mm)" value={specs.size} onChange={(e) => setSpecs({...specs, size: e.target.value})} className="bg-black border border-white/10 p-4 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-amber-500" />
+                  )}
+                  {category === "psu" && (
+                    <input placeholder="Wattage (e.g. 750W)" value={specs.wattage} onChange={(e) => setSpecs({...specs, wattage: e.target.value})} className="bg-black border border-white/10 p-4 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-amber-500" />
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 items-end">
                 <div><label className="text-[10px] font-black text-zinc-500 uppercase ml-2 mb-2 block">Stock</label><input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full bg-black border border-white/10 p-4 rounded-2xl font-black text-white" /></div>
@@ -273,7 +313,19 @@ const Admin = () => {
                 <tbody className="divide-y divide-white/5 italic">
                   {products.filter(p => !p.isOffer).map(p => (
                     <tr key={p.id} className="hover:bg-white/[0.01]">
-                      <td className="p-8"><div className="flex items-center gap-6"><img src={p.image} className="w-16 h-16 rounded-2xl object-cover" /><div className="font-black uppercase text-lg">{p.name}<span className="block text-[10px] text-zinc-600 not-italic uppercase mt-1">{p.category} • {p.stock} Units</span></div></div></td>
+                      <td className="p-8">
+                        <div className="flex items-center gap-6">
+                          <img src={p.image} className="w-16 h-16 rounded-2xl object-cover" />
+                          <div className="font-black uppercase text-lg">
+                            {p.name}
+                            <span className="block text-[10px] text-zinc-600 not-italic uppercase mt-1">
+                              {p.category} • {p.brand} • {p.stock} Units
+                              {p.specs?.ddr && ` • ${p.specs.ddr}`}
+                              {p.specs?.socket && ` • ${p.specs.socket}`}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
                       <td className="p-8 font-black text-xl">LKR {p.sellingPrice?.toLocaleString()}</td>
                       <td className="p-8"><button onClick={() => deleteItem(p.id, "products")} className="text-zinc-800 hover:text-red-500 transition-all"><Trash2 size={22} /></button></td>
                     </tr>
@@ -284,6 +336,7 @@ const Admin = () => {
           </div>
         )}
 
+        {/* Offers and Setup tabs remain the same as your original code */}
         {activeTab === 'offers' && (
           <div className="space-y-10 animate-reveal-up">
             <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">Special Offers</h1>
